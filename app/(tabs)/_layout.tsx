@@ -1,9 +1,9 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+//import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
@@ -12,22 +12,47 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
+       tabBarActiveTintColor: '#5c4033', 
+        tabBarInactiveTintColor: 'gray',
+        headerShown: true, 
+        headerStyle: { backgroundColor: '#5c4033' }, 
+        headerTintColor: '#fff', 
+        tabBarButton: HapticTab, 
       }}>
+     
+      <Tabs.Screen
+        name="armario"
+        options={{
+          title: 'Armario',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="wardrobe" size={28} color={color} />,
+        }}
+      />
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="home" size={28} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="lavado"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Lavado',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="washing-machine" size={28} color={color} />,
+        }}
+      />     
+      <Tabs.Screen
+        name="outfit"
+        options={{
+          title: 'Outfit',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="hanger" size={28} color={color} />,
+        }}
+      />    
+      <Tabs.Screen
+        name="prendas"
+        options={{
+          title: 'Prendas',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="tshirt-crew" size={28} color={color} />,
         }}
       />
     </Tabs>
