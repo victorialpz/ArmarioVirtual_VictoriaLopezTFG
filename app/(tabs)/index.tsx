@@ -1,98 +1,140 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-
-export default function InicioScreen() {
+export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/inicio.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      
+      {/* 1. SECCIÓN DE BIENVENIDA */}
+      <View style={styles.header}>
+        <Text style={styles.greeting}>¡Hola! 👋</Text>
+        <Text style={styles.subtitle}>¿Qué nos ponemos hoy?</Text>
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {/* 2. BOTÓN DE ACCIÓN RÁPIDA (Opcional, pero le da un toque muy Pro) */}
+      <TouchableOpacity style={styles.actionCard}>
+        <MaterialCommunityIcons name="hanger" size={32} color="#fff" />
+        <View style={styles.actionTextContainer}>
+          <Text style={styles.actionTitle}>Generar nuevo outfit</Text>
+          <Text style={styles.actionSubtitle}>Deja que la IA decida por ti</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#fff" />
+      </TouchableOpacity>
+
+      {/* 3. SECCIÓN DE OUTFITS PASADOS */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Tus últimos outfits</Text>
+        
+        {/* Scroll horizontal para deslizar los outfits de lado a lado */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carousel}>
+          
+          {/* Tarjeta de Outfit 1 */}
+          <View style={styles.outfitCard}>
+            <View style={styles.imagePlaceholder}>
+              <MaterialCommunityIcons name="tshirt-crew" size={40} color="#a9a9a9" />
+            </View>
+            <Text style={styles.outfitDate}>Hoy</Text>
+          </View>
+
+          {/* Tarjeta de Outfit 2 */}
+          <View style={styles.outfitCard}>
+            <View style={styles.imagePlaceholder}>
+              <MaterialCommunityIcons name="tshirt-crew" size={40} color="#a9a9a9" />
+            </View>
+            <Text style={styles.outfitDate}>Ayer</Text>
+          </View>
+
+          {/* Tarjeta de Outfit 3 */}
+          <View style={styles.outfitCard}>
+            <View style={styles.imagePlaceholder}>
+              <MaterialCommunityIcons name="tshirt-crew" size={40} color="#a9a9a9" />
+            </View>
+            <Text style={styles.outfitDate}>Sábado</Text>
+          </View>
+
+        </ScrollView>
+      </View>
+
+    </ScrollView>
   );
 }
 
+// --- ESTILOS VISUALES ---
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5', // Un gris muy clarito de fondo para que destaquen las tarjetas
+    padding: 20,
+  },
+  header: {
+    marginTop: 10,
+    marginBottom: 25,
+  },
+  greeting: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 5,
+  },
+  actionCard: {
+    backgroundColor: '#5c4033', // Tu color corporativo
+    borderRadius: 15,
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 35,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // Sombra para Android
   },
-  stepContainer: {
-    gap: 8,
+  actionTextContainer: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  actionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  actionSubtitle: {
+    color: '#d3c4bc',
+    fontSize: 14,
+    marginTop: 3,
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  carousel: {
+    flexDirection: 'row',
+  },
+  outfitCard: {
+    marginRight: 15,
+    alignItems: 'center',
+  },
+  imagePlaceholder: {
+    width: 120,
+    height: 160,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  outfitDate: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '500',
+  }
 });
