@@ -12,19 +12,27 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-       tabBarActiveTintColor: '#5c4033', 
+        tabBarActiveTintColor: '#5c4033',
         tabBarInactiveTintColor: 'gray',
-        headerShown: true, 
-        headerStyle: { backgroundColor: '#5c4033' }, 
-        headerTintColor: '#fff', 
-        tabBarButton: HapticTab, 
+        headerShown: true,
+        headerStyle: { backgroundColor: '#5c4033' },
+        headerTintColor: '#fff',
+        tabBarButton: HapticTab,
       }}>
-     
+
+
       <Tabs.Screen
-        name="armario"
+        name="outfit"
         options={{
-          title: 'Armario',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="wardrobe" size={28} color={color} />,
+          title: 'Outfit',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="hanger" size={28} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="prendas"
+        options={{
+          title: 'Prendas',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="tshirt-crew" size={28} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -40,19 +48,12 @@ export default function TabLayout() {
           title: 'Lavado',
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="washing-machine" size={28} color={color} />,
         }}
-      />     
+      />
       <Tabs.Screen
-        name="outfit"
+        name="armario"
         options={{
-          title: 'Outfit',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="hanger" size={28} color={color} />,
-        }}
-      />    
-      <Tabs.Screen
-        name="prendas"
-        options={{
-          title: 'Prendas',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="tshirt-crew" size={28} color={color} />,
+          title: 'Armario',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="wardrobe" size={28} color={color} />,
         }}
       />
     </Tabs>
