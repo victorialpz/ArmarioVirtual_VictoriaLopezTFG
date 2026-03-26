@@ -1,70 +1,81 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// 1. DATOS DE PRUEBA (Ropa que está en el cesto)
-const ROPA_SUCIA = [
-  { id: '1', nombre: 'Camiseta Básica Blanca', tipo: 'Algodón - 30º', icono: 'tshirt-crew' },
-  { id: '2', nombre: 'Vaqueros Azules', tipo: 'Denim - Frío', icono: 'jeans' },
-  { id: '3', nombre: 'Sudadera Gimnasio', tipo: 'Sintético - 40º', icono: 'hoodie' },
-];
+// 1. IMPORTAMOS NUESTRA BASE DE DATOS TEMPORAL
+import { INVENTARIO_MOCK } from '@/data/mockData';
+import { Prenda } from '@/models/tipo';
 
 export default function LavadoScreen() {
-  return (
-    <View style={styles.container}>
-      
-      {/* 2. CABECERA */}
-      <View style={styles.header}>
-        <Text style={styles.titulo}>Zona de Lavado</Text>
-        <Text style={styles.subtitulo}>Tienes 3 prendas en el cesto ahora mismo.</Text>
+  
+  // 2. LÓGICA DE LA LAVANDERÍA INTELIGENTE
+  // Filtramos automáticamente las prendas que hemos marcado como delicadas en la base de datos
+  const coladaDelicada = INVENTARIO_MOCK.filter(prenda => prenda.esDelicado);
+
+  // Función para dibujar cada prenda dentro del carrusel horizontal
+  const renderPrendaColada = ({ item }: { item: Prenda }) => (
+    <View style={styles.cardColada}>
+      <View style={styles.iconoFondo}>
+        <MaterialCommunityIcons name={item.icono as any} size={50} color="#5c4033" />
       </View>
+      <Text style={styles.nombreColada} numberOfLines={1}>{item.nombre}</Text>
+      <Text style={styles.tejidoColada}>{item.tejido}</Text>
+    </View>
+  );
 
-      {/* 3. LISTA DE ROPA SUCIA */}
-      <FlatList
-        data={ROPA_SUCIA}
-        keyExtractor={(item) => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.lista}
-        // Metemos el diseño de la "tarjeta" directamente aquí para evitar errores de TypeScript:
-        renderItem={({ item }) => (
-          <View style={styles.cardSucia}>
-            <View style={styles.iconoFondo}>
-              <MaterialCommunityIcons name={item.icono as any} size={32} color="#5c4033" />
-            </View>
-            
-            <View style={styles.infoPrenda}>
-              <Text style={styles.nombrePrenda}>{item.nombre}</Text>
-              <Text style={styles.tipoPrenda}>{item.tipo}</Text>
-            </View>
-
-            {/* Botón para devolver al armario */}
-            <TouchableOpacity style={styles.botonLimpiar}>
-              <MaterialCommunityIcons name="check" size={20} color="#fff" />
-              <Text style={styles.textoBoton}>Limpia</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
-
-      {/* 4. TARJETA EXTRA: GUÍA DE ETIQUETAS */}
-      <View style={styles.guiaLavado}>
-        <Text style={styles.tituloGuia}>Guía rápida de etiquetas</Text>
-        <View style={styles.iconosGuia}>
-          <View style={styles.itemGuia}>
-            <MaterialCommunityIcons name="washing-machine" size={24} color="#666" />
-            <Text style={styles.textoGuiapequeño}>Lavadora</Text>
-          </View>
-          <View style={styles.itemGuia}>
-            <MaterialCommunityIcons name="tumble-dryer" size={24} color="#666" />
-            <Text style={styles.textoGuiapequeño}>Secadora</Text>
-          </View>
-          <View style={styles.itemGuia}>
-            <MaterialCommunityIcons name="iron" size={24} color="#666" />
-            <Text style={styles.textoGuiapequeño}>Plancha</Text>
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      
+    {/* 3. SECCIÓN DE LA LAVADORA */}
+      <View style={styles.header}>
+        <MaterialCommunityIcons name="washing-machine" size={100} color="#5c4033" />
+        
+        <View style={styles.infoLavadora}>
+          <Text style={styles.tituloSecundario}>Tú lavadora</Text>
+          <View style={styles.datosBox}>
+            <Text style={styles.textoDato}>Modelo: <Text style={styles.textoBold}>Bosch Serie 6</Text></Text>
+            <Text style={styles.textoDato}>Carga máx: <Text style={styles.textoBold}>8 kg</Text></Text>
           </View>
         </View>
       </View>
 
-    </View>
+      {/* 4. GRUPOS DE LAVADO SUGERIDOS */}
+      <View style={styles.seccionGrupo}>
+        
+        <View style={styles.cabeceraGrupo}>
+          <Text style={styles.tituloGrupo}>Colada Delicada</Text>
+          <View style={styles.etiquetaTag}>
+             <Text style={styles.textoTag}>Max 30º</Text>
+          </View>
+        </View>
+        
+        <Text style={styles.descripcionGrupo}>
+          Lava estas prendas juntas porque presentan tejidos (como lana o cuero) que requieren un trato suave para no estropearse.
+        </Text>
+
+        {/* Carrusel horizontal de prendas compatibles */}
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={coladaDelicada}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPrendaColada}
+          contentContainerStyle={styles.listaColada}
+          ListEmptyComponent={
+            <Text style={styles.textoVacio}>No hay prendas delicadas pendientes de lavar.</Text>
+          }
+        />
+
+        {/* Botón de acción */}
+        <TouchableOpacity style={styles.botonLavar}>
+          <MaterialCommunityIcons name="water" size={22} color="#fff" />
+          <Text style={styles.textoBotonLavar}>Confirmar lavado</Text>
+        </TouchableOpacity>
+        
+      </View>
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
   );
 }
 
@@ -74,99 +85,129 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  header: {
+ header: {
+    flexDirection: 'row', // ¡Esto pone los elementos uno al lado del otro!
     padding: 20,
-    paddingTop: 30,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    alignItems: 'center', // Centra verticalmente el icono y la caja de texto
   },
-  titulo: {
-    fontSize: 28,
+  infoLavadora: {
+    flex: 1, // Hace que la caja de texto ocupe el espacio restante a la derecha
+    marginLeft: 20, // Separa el texto del icono de la lavadora
+  },
+  tituloSecundario: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 8,
   },
-  subtitulo: {
-    fontSize: 15,
-    color: '#666',
-    marginTop: 5,
-  },
-  lista: {
-    padding: 15,
-  },
-  cardSucia: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  iconoFondo: {
-    width: 50,
-    height: 50,
+  datosBox: {
     backgroundColor: '#f9f5f3',
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
+    padding: 12,
+    borderRadius: 12,
   },
-  infoPrenda: {
-    flex: 1,
+  textoDato: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
   },
-  nombrePrenda: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  tipoPrenda: {
-    fontSize: 13,
-    color: '#888',
-    marginTop: 2,
-  },
-  botonLimpiar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#5c4033', // Tu color corporativo
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  textoBoton: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 13,
-    marginLeft: 4,
-  },
-  guiaLavado: {
-    margin: 15,
-    padding: 15,
-    backgroundColor: '#e6dfd9', // Un marrón muy clarito
-    borderRadius: 15,
-    marginBottom: 25,
-  },
-  tituloGuia: {
-    fontSize: 16,
+  textoBold: {
     fontWeight: 'bold',
     color: '#5c4033',
+  },
+  seccionGrupo: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  cabeceraGrupo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
+  },
+  tituloGrupo: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  etiquetaTag: {
+    backgroundColor: '#e6dfd9',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  textoTag: {
+    color: '#5c4033',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  descripcionGrupo: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  listaColada: {
+    paddingBottom: 20,
+  },
+  cardColada: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 15,
+    marginRight: 15,
+    alignItems: 'center',
+    width: 140, // Ancho fijo para que todas las tarjetas sean iguales
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  iconoFondo: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#f9f5f3',
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  nombreColada: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
     textAlign: 'center',
   },
-  iconosGuia: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  itemGuia: {
-    alignItems: 'center',
-  },
-  textoGuiapequeño: {
+  tejidoColada: {
     fontSize: 12,
-    color: '#555',
+    color: '#888',
     marginTop: 4,
+  },
+  textoVacio: {
+    color: '#888',
+    fontStyle: 'italic',
+    padding: 20,
+  },
+  botonLavar: {
+    flexDirection: 'row',
+    backgroundColor: '#5c4033',
+    paddingVertical: 16,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#5c4033',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  textoBotonLavar: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
   }
 });

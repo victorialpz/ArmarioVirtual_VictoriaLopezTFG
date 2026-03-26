@@ -2,41 +2,68 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// 1. DATOS DE PRUEBA (Mock data)
-// Cuando conectes tu base de datos, esto vendrá de ahí.
-const PRENDAS_MOCK = [
-  { id: '1', nombre: 'Camiseta Básica', categoria: 'Partes de arriba', icono: 'tshirt-crew' },
-  { id: '2', nombre: 'Vaqueros Azules', categoria: 'Partes de abajo', icono: 'jeans' },
-  { id: '3', nombre: 'Chaqueta Cuero', categoria: 'Abrigos', icono: 'jacket' },
-  { id: '4', nombre: 'Deportivas Blancas', categoria: 'Calzado', icono: 'shoe-sneaker' },
-  { id: '5', nombre: 'Sudadera Gris', categoria: 'Partes de arriba', icono: 'hoodie' },
-  { id: '6', nombre: 'Pantalón Corto', categoria: 'Partes de abajo', icono: 'shorts' },
-];
+// 1. IMPORTAMOS NUESTROS DATOS Y EL MODELO
+import { INVENTARIO_MOCK } from '@/data/mockData';
+import { Prenda } from '@/models/tipo';
 
-const CATEGORIAS = ['Todas', 'Partes de arriba', 'Partes de abajo', 'Abrigos', 'Calzado'];
+// Categorías extraídas de tu prototipo (Página 4)
+const CATEGORIAS = ['Todas', 'Partes de arriba', 'Pantalones', 'Jerseys', 'Abrigos y chaquetas', 'Favoritos'];
 
 export default function PrendasScreen() {
   const [categoriaActiva, setCategoriaActiva] = useState('Todas');
 
-  // Función para dibujar cada prenda de la cuadrícula
-  const renderPrenda = ({ item }: any) => (
+  // 2. LÓGICA DE FILTRADO INTELIGENTE
+  const prendasFiltradas = INVENTARIO_MOCK.filter(prenda => {
+    // Si elige "Todas", lo devolvemos todo
+    if (categoriaActiva === 'Todas') return true;
+    
+    // Si elige "Favoritos", miramos el campo booleano
+    if (categoriaActiva === 'Favoritos') return prenda.esFavorito;
+
+    // MAGIA: Agrupamos subcategorías lógicas
+    if (categoriaActiva === 'Partes de arriba') {
+      // Si la prenda es cualquiera de estas cosas, la consideramos parte de arriba
+      return ['Partes de arriba', 'Jerseys', 'Abrigos y chaquetas', 'Camisas y blusas'].includes(prenda.categoria);
+    }
+
+    if (categoriaActiva === 'Pantalones' || categoriaActiva === 'Partes de abajo') {
+      return ['Pantalones', 'Faldas', 'Partes de abajo'].includes(prenda.categoria);
+    }
+
+    // Para el resto de filtros (ej. si toca específicamente el botón "Jerseys")
+    return prenda.categoria === categoriaActiva;
+  });
+
+  // 3. FUNCIÓN PARA DIBUJAR CADA TARJETA
+  const renderPrenda = ({ item }: { item: Prenda }) => (
     <TouchableOpacity style={styles.cardPrenda}>
       <View style={styles.imagenPrenda}>
-        {/* Usamos iconos de ropa temporales hasta que tengas fotos reales */}
-        <MaterialCommunityIcons name={item.icono} size={50} color="#5c4033" />
+        
+        {/* Estrella de favorito inspirada en la página 6 de tu prototipo */}
+        {item.esFavorito && (
+          <MaterialCommunityIcons 
+            name="star" 
+            size={24} 
+            color="#a89078" // Un tono dorado/marrón claro
+            style={styles.iconoFavorito} 
+          />
+        )}
+        
+        <MaterialCommunityIcons name={item.icono as any} size={50} color="#5c4033" />
       </View>
+      
       <Text style={styles.nombrePrenda} numberOfLines={1}>{item.nombre}</Text>
+      <Text style={styles.tejidoPrenda}>{item.tejido}</Text>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
       
-      {/* 2. CABECERA Y FILTROS */}
+      {/* CABECERA Y FILTROS */}
       <View style={styles.header}>
         <Text style={styles.titulo}>Mi Ropa</Text>
         
-        {/* Píldoras de categorías desplazables */}
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -62,17 +89,24 @@ export default function PrendasScreen() {
         />
       </View>
 
-      {/* 3. CUADRÍCULA DE PRENDAS */}
+      {/* CUADRÍCULA DE PRENDAS */}
       <FlatList
-        data={PRENDAS_MOCK}
+        data={prendasFiltradas}
         keyExtractor={(item) => item.id}
         renderItem={renderPrenda}
-        numColumns={2} // ¡La magia para hacer la cuadrícula!
+        numColumns={2}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.gridPrendas}
+        // Mensaje por si la categoría no tiene ropa aún
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="hanger" size={40} color="#ccc" />
+            <Text style={styles.textoVacio}>No hay prendas en esta categoría.</Text>
+          </View>
+        }
       />
 
-      {/* 4. BOTÓN FLOTANTE PARA AÑADIR (FAB) */}
+      {/* BOTÓN FLOTANTE PARA AÑADIR (FAB) */}
       <TouchableOpacity style={styles.fab}>
         <MaterialCommunityIcons name="plus" size={30} color="#fff" />
       </TouchableOpacity>
@@ -111,7 +145,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   pildoraActiva: {
-    backgroundColor: '#5c4033', // Tu color corporativo
+    backgroundColor: '#5c4033',
   },
   textoCategoria: {
     color: '#666',
@@ -137,19 +171,40 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   imagenPrenda: {
-    width: 100,
+    width: '100%',
     height: 100,
-    backgroundColor: '#f9f5f3', // Un tono muy suave derivado de tu marrón
+    backgroundColor: '#f9f5f3',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
+    position: 'relative', // Necesario para posicionar la estrella
+  },
+  iconoFavorito: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    zIndex: 1,
   },
   nombrePrenda: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#333',
-    fontWeight: '500',
+    fontWeight: '600',
     textAlign: 'center',
+  },
+  tejidoPrenda: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 4,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 50,
+  },
+  textoVacio: {
+    marginTop: 10,
+    color: '#888',
+    fontSize: 16,
   },
   fab: {
     position: 'absolute',
