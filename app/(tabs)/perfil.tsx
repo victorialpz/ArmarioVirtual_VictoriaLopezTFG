@@ -1,13 +1,28 @@
+import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router'; // Importante para redireccionar al login
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function PerfilScreen() {
-  // Estado para guardar los datos del formulario
+  const [loading, setLoading] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+
   const [formData, setFormData] = useState({
     usuario: '',
     correo: '',
-    contrasena: '',
+    contrasena: '********',
     telefono: '',
     nombre: '',
     apellidos: '',
@@ -16,213 +31,211 @@ export default function PerfilScreen() {
     altura: ''
   });
 
-  // Función para actualizar el estado
+  useEffect(() => {
+    cargarDatosDelUsuario();
+  }, []);
+
+  const cargarDatosDelUsuario = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data, error } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setFormData({
+            usuario: data.usuario || '',
+            correo: data.email || '',
+            contrasena: '********',
+            telefono: data.telefono || '',
+            nombre: data.nombre || '',
+            apellidos: data.apellidos || '',
+            sexo: data.sexo || '',
+            edad: data.edad ? data.edad.toString() : '',
+            altura: data.altura ? data.altura.toString() : ''
+          });
+        }
+      }
+    } catch (error: any) {
+      Alert.alert('Error', 'No se pudieron cargar tus datos: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const guardarCambios = async () => {
+    try {
+      setGuardando(true);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { error } = await supabase
+          .from('usuarios')
+          .update({
+            usuario: formData.usuario,
+            nombre: formData.nombre,
+            apellidos: formData.apellidos,
+            telefono: formData.telefono,
+            sexo: formData.sexo,
+            edad: formData.edad ? parseInt(formData.edad) : null,
+            altura: formData.altura ? parseFloat(formData.altura) : null,
+          })
+          .eq('id', user.id);
+
+        if (error) throw error;
+        Alert.alert('¡Éxito!', 'Perfil actualizado correctamente.');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  // Función para cerrar sesión
+  const cerrarSesion = async () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro de que quieres salir de tu armario virtual?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Cerrar Sesión", 
+          style: "destructive", 
+          onPress: async () => {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+              Alert.alert('Error', 'No se pudo cerrar la sesión');
+            } else {
+              router.replace('/login');
+            }
+          } 
+        }
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#5c4033" />
+      </View>
+    );
+  }
+
   return (
-  <ScrollView style={styles.container} showsVerticalScrollIndicator={false} 
-  keyboardShouldPersistTaps="handled" >
-      
-      {/* 1. CABECERA DEL PERFIL */}
-      <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <MaterialCommunityIcons name="account-circle" size={80} color="#5c4033" />
-        </View>
-        <Text style={styles.titulo}>Mi Perfil</Text>
-        <Text style={styles.subtitulo}>Configura tus datos personales</Text>
-      </View>
-
-      {/* 2. FORMULARIO */}
-      <View style={styles.formContainer}>
+    // KeyboardAvoidingView ajusta la vista cuando aparece el teclado
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={{ flex: 1 }}
+    >
+      <ScrollView 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false} 
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 50 }}
+      >
         
-        {/* Usuario */}
-        <View style={styles.inputGroup}>
-          <MaterialCommunityIcons name="account" size={20} color="#666" style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Usuario"
-            value={formData.usuario}
-            onChangeText={(text) => handleChange('usuario', text)}
-          />
-        </View>
-
-        {/* Correo */}
-        <View style={styles.inputGroup}>
-          <MaterialCommunityIcons name="email" size={20} color="#666" style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Correo electrónico"
-            keyboardType="email-address"
-            value={formData.correo}
-            onChangeText={(text) => handleChange('correo', text)}
-          />
-        </View>
-
-        {/* Contraseña */}
-        <View style={styles.inputGroup}>
-          <MaterialCommunityIcons name="lock" size={20} color="#666" style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Contraseña"
-            secureTextEntry={true}
-            value={formData.contrasena}
-            onChangeText={(text) => handleChange('contrasena', text)}
-          />
-        </View>
-
-        {/* Teléfono */}
-        <View style={styles.inputGroup}>
-          <MaterialCommunityIcons name="phone" size={20} color="#666" style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Teléfono"
-            keyboardType="phone-pad"
-            value={formData.telefono}
-            onChangeText={(text) => handleChange('telefono', text)}
-          />
-        </View>
-
-        {/* Nombre y Apellidos (En fila) */}
-        <View style={styles.row}>
-          <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-            <MaterialCommunityIcons name="card-account-details-outline" size={20} color="#666" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Nombre"
-              value={formData.nombre}
-              onChangeText={(text) => handleChange('nombre', text)}
-            />
+        <View style={styles.header}>
+          <View style={styles.avatarContainer}>
+            <MaterialCommunityIcons name="account-circle" size={80} color="#5c4033" />
           </View>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <TextInput
-              style={styles.input}
-              placeholder="Apellidos"
-              value={formData.apellidos}
-              onChangeText={(text) => handleChange('apellidos', text)}
-            />
+          <Text style={styles.titulo}>Mi Perfil</Text>
+          <Text style={styles.subtitulo}>Configura tus datos personales</Text>
+        </View>
+
+        <View style={styles.formContainer}>
+          <View style={styles.inputGroup}>
+            <MaterialCommunityIcons name="account" size={20} color="#666" style={styles.icon} />
+            <TextInput style={styles.input} placeholder="Usuario" value={formData.usuario} onChangeText={(text) => handleChange('usuario', text)} />
+          </View>
+
+          <View style={[styles.inputGroup, { backgroundColor: '#f0f0f0' }]}>
+            <MaterialCommunityIcons name="email" size={20} color="#999" style={styles.icon} />
+            <TextInput style={[styles.input, { color: '#999' }]} placeholder="Correo electrónico" value={formData.correo} editable={false} />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <MaterialCommunityIcons name="phone" size={20} color="#666" style={styles.icon} />
+            <TextInput style={styles.input} placeholder="Teléfono" keyboardType="phone-pad" value={formData.telefono} onChangeText={(text) => handleChange('telefono', text)} />
+          </View>
+
+          <View style={styles.row}>
+            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+              <MaterialCommunityIcons name="card-account-details-outline" size={20} color="#666" style={styles.icon} />
+              <TextInput style={styles.input} placeholder="Nombre" value={formData.nombre} onChangeText={(text) => handleChange('nombre', text)} />
+            </View>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <TextInput style={styles.input} placeholder="Apellidos" value={formData.apellidos} onChangeText={(text) => handleChange('apellidos', text)} />
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+              <MaterialCommunityIcons name="gender-male-female" size={20} color="#666" style={styles.icon} />
+              <TextInput style={styles.input} placeholder="Sexo" value={formData.sexo} onChangeText={(text) => handleChange('sexo', text)} />
+            </View>
+            <View style={[styles.inputGroup, { flex: 0.8, marginRight: 10 }]}>
+              <TextInput style={styles.input} placeholder="Edad" keyboardType="numeric" value={formData.edad} onChangeText={(text) => handleChange('edad', text)} />
+            </View>
+            <View style={[styles.inputGroup, { flex: 0.8 }]}>
+              <MaterialCommunityIcons name="human-male-height" size={20} color="#666" style={styles.icon} />
+              <TextInput style={styles.input} placeholder="cm" keyboardType="numeric" value={formData.altura} onChangeText={(text) => handleChange('altura', text)} />
+            </View>
           </View>
         </View>
 
-        {/* Sexo, Edad y Altura (En fila) */}
-        <View style={styles.row}>
-          <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-            <MaterialCommunityIcons name="gender-male-female" size={20} color="#666" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Sexo"
-              value={formData.sexo}
-              onChangeText={(text) => handleChange('sexo', text)}
-            />
-          </View>
-          <View style={[styles.inputGroup, { flex: 0.8, marginRight: 10 }]}>
-            <TextInput
-              style={styles.input}
-              placeholder="Edad"
-              keyboardType="numeric"
-              value={formData.edad}
-              onChangeText={(text) => handleChange('edad', text)}
-            />
-          </View>
-          <View style={[styles.inputGroup, { flex: 0.8 }]}>
-            <MaterialCommunityIcons name="human-male-height" size={20} color="#666" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="cm"
-              keyboardType="numeric"
-              value={formData.altura}
-              onChangeText={(text) => handleChange('altura', text)}
-            />
-          </View>
-        </View>
+        <TouchableOpacity style={styles.botonGuardar} onPress={guardarCambios} disabled={guardando}>
+          {guardando ? <ActivityIndicator color="#fff" /> : <Text style={styles.textoBoton}>Guardar Cambios</Text>}
+        </TouchableOpacity>
 
-      </View>
+        {/* BOTÓN CERRAR SESIÓN */}
+        <TouchableOpacity style={styles.botonLogout} onPress={cerrarSesion}>
+          <MaterialCommunityIcons name="logout" size={20} color="#d9534f" style={{ marginRight: 8 }} />
+          <Text style={styles.textoBotonLogout}>Cerrar Sesión</Text>
+        </TouchableOpacity>
 
-      {/* 3. BOTÓN DE GUARDAR */}
-      <TouchableOpacity style={styles.botonGuardar}>
-        <Text style={styles.textoBoton}>Guardar Cambios</Text>
-      </TouchableOpacity>
-
-      {/* Espaciado extra al final para el scroll */}
-      <View style={{ height: 40 }} />
-
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-// --- ESTILOS VISUALES ---
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: 30,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  avatarContainer: {
-    marginBottom: 10,
-    backgroundColor: '#f9f5f3',
-    borderRadius: 50,
-  },
-  titulo: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  subtitulo: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  formContainer: {
-    padding: 20,
-  },
-  inputGroup: {
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  header: { alignItems: 'center', paddingVertical: 30, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
+  avatarContainer: { marginBottom: 10, backgroundColor: '#f9f5f3', borderRadius: 50 },
+  titulo: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+  subtitulo: { fontSize: 14, color: '#666', marginTop: 4 },
+  formContainer: { padding: 20 },
+  inputGroup: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, marginBottom: 15, paddingHorizontal: 15, height: 55, elevation: 2 },
+  icon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 16, color: '#333' },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  botonGuardar: { backgroundColor: '#5c4033', marginHorizontal: 20, borderRadius: 15, paddingVertical: 18, alignItems: 'center', elevation: 3 },
+  textoBoton: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  
+  // Estilos nuevos para el botón de logout
+  botonLogout: { 
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 15,
-    paddingHorizontal: 15,
-    height: 55,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  icon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  botonGuardar: {
-    backgroundColor: '#5c4033', // Tu color corporativo
-    marginHorizontal: 20,
+    marginTop: 25, 
+    marginHorizontal: 20, 
+    paddingVertical: 15, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#d9534f',
     borderRadius: 15,
-    paddingVertical: 18,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  textoBoton: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  }
+  textoBotonLogout: { color: '#d9534f', fontSize: 16, fontWeight: '600' }
 });

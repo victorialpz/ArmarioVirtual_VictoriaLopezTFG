@@ -1,3 +1,4 @@
+// Archivo: app/registro_datos.tsx
 import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
