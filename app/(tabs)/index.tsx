@@ -63,7 +63,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5', // Un gris muy clarito de fondo para que destaquen las tarjetas
+    backgroundColor: '#f5f5f5', 
     padding: 20,
   },
   header: {
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   actionCard: {
-    backgroundColor: '#5c4033', // Tu color corporativo
+    backgroundColor: '#5c4033',
     borderRadius: 15,
     padding: 20,
     flexDirection: 'row',
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3, // Sombra para Android
+    elevation: 3, 
   },
   actionTextContainer: {
     flex: 1,
