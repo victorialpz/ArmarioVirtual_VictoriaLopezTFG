@@ -1,28 +1,58 @@
+import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect } from 'expo-router'; // Importante para recargar al cambiar de pestaña
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// 1. IMPORTAMOS NUESTROS DATOS Y EL MODELO
-import { INVENTARIO_MOCK } from '@/data/mockData';
-import { Prenda } from '@/models/tipo';
-
-// Categorías extraídas de tu prototipo (Página 4)
 const CATEGORIAS = ['Todas', 'Partes de arriba', 'Pantalones', 'Jerseys', 'Abrigos y chaquetas', 'Favoritos'];
 
 export default function PrendasScreen() {
   const [categoriaActiva, setCategoriaActiva] = useState('Todas');
+  
+  // --- NUEVOS ESTADOS PARA LA BASE DE DATOS ---
+  const [prendas, setPrendas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // 2. LÓGICA DE FILTRADO INTELIGENTE
-  const prendasFiltradas = INVENTARIO_MOCK.filter(prenda => {
-    // Si elige "Todas", lo devolvemos todo
+  // --- RECARGAR PRENDAS CADA VEZ QUE ENTRAMOS EN LA PESTAÑA ---
+  useFocusEffect(
+    useCallback(() => {
+      cargarPrendas();
+    }, [])
+  );
+
+  const cargarPrendas = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Pedimos a Supabase todas las prendas de este usuario, ordenadas por la más reciente
+      const { data, error } = await supabase
+        .from('prendas')
+        .select('*')
+        .eq('id_usuario', user.id)
+        .order('fecha_registro', { ascending: false });
+
+      if (error) throw error;
+      
+      if (data) {
+        setPrendas(data); // Guardamos la ropa real en la variable
+      }
+    } catch (error: any) {
+      Alert.alert('Error', 'No pudimos cargar tu armario: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- LÓGICA DE FILTRADO CON LOS DATOS REALES ---
+  const prendasFiltradas = prendas.filter(prenda => {
     if (categoriaActiva === 'Todas') return true;
     
-    // Si elige "Favoritos", miramos el campo booleano
-    if (categoriaActiva === 'Favoritos') return prenda.esFavorito;
+    // Fíjate que usamos 'es_favorito' con guion bajo, como lo tienes en tu base de datos
+    if (categoriaActiva === 'Favoritos') return prenda.es_favorito;
 
-    // MAGIA: Agrupamos subcategorías lógicas
     if (categoriaActiva === 'Partes de arriba') {
-      // Si la prenda es cualquiera de estas cosas, la consideramos parte de arriba
       return ['Partes de arriba', 'Jerseys', 'Abrigos y chaquetas', 'Camisas y blusas'].includes(prenda.categoria);
     }
 
@@ -30,30 +60,33 @@ export default function PrendasScreen() {
       return ['Pantalones', 'Faldas', 'Partes de abajo'].includes(prenda.categoria);
     }
 
-    // Para el resto de filtros (ej. si toca específicamente el botón "Jerseys")
     return prenda.categoria === categoriaActiva;
   });
 
-  // 3. FUNCIÓN PARA DIBUJAR CADA TARJETA
-  const renderPrenda = ({ item }: { item: Prenda }) => (
+  // --- DIBUJAMOS CADA PRENDA ---
+  const renderPrenda = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.cardPrenda}>
       <View style={styles.imagenPrenda}>
         
-        {/* Estrella de favorito inspirada en la página 6 de tu prototipo */}
-        {item.esFavorito && (
+        {item.es_favorito && (
           <MaterialCommunityIcons 
             name="star" 
             size={24} 
-            color="#a89078" // Un tono dorado/marrón claro
+            color="#a89078" 
             style={styles.iconoFavorito} 
           />
         )}
         
-        <MaterialCommunityIcons name={item.icono as any} size={50} color="#5c4033" />
+        {/* MAGIA: Si hay URL, mostramos la foto. Si no, un icono de respaldo */}
+        {item.imagen_url ? (
+          <Image source={{ uri: item.imagen_url }} style={styles.imagenReal} />
+        ) : (
+          <MaterialCommunityIcons name="tshirt-crew" size={50} color="#5c4033" />
+        )}
       </View>
       
       <Text style={styles.nombrePrenda} numberOfLines={1}>{item.nombre}</Text>
-      <Text style={styles.tejidoPrenda}>{item.tejido}</Text>
+      <Text style={styles.tejidoPrenda}>{item.categoria}</Text>
     </TouchableOpacity>
   );
 
@@ -89,24 +122,30 @@ export default function PrendasScreen() {
         />
       </View>
 
-      {/* CUADRÍCULA DE PRENDAS */}
-      <FlatList
-        data={prendasFiltradas}
-        keyExtractor={(item) => item.id}
-        renderItem={renderPrenda}
-        numColumns={2}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.gridPrendas}
-        // Mensaje por si la categoría no tiene ropa aún
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="hanger" size={40} color="#ccc" />
-            <Text style={styles.textoVacio}>No hay prendas en esta categoría.</Text>
-          </View>
-        }
-      />
+      {/* CONTENIDO PRINCIPAL: RULETA DE CARGA O LISTA DE PRENDAS */}
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#5c4033" />
+          <Text style={styles.textoCargando}>Abriendo las puertas del armario...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={prendasFiltradas}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPrenda}
+          numColumns={2}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.gridPrendas}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons name="hanger" size={40} color="#ccc" />
+              <Text style={styles.textoVacio}>No hay prendas en esta categoría.</Text>
+            </View>
+          }
+        />
+      )}
 
-      {/* BOTÓN FLOTANTE PARA AÑADIR (FAB) */}
+      {/* BOTÓN FLOTANTE PARA AÑADIR */}
       <TouchableOpacity style={styles.fab}>
         <MaterialCommunityIcons name="plus" size={30} color="#fff" />
       </TouchableOpacity>
@@ -117,109 +156,43 @@ export default function PrendasScreen() {
 
 // --- ESTILOS VISUALES ---
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    padding: 20,
-    paddingBottom: 10,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  titulo: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  listaCategorias: {
-    flexGrow: 0,
-  },
-  pildoraCategoria: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    marginRight: 10,
-  },
-  pildoraActiva: {
-    backgroundColor: '#5c4033',
-  },
-  textoCategoria: {
-    color: '#666',
-    fontWeight: '600',
-  },
-  textoCategoriaActiva: {
-    color: '#fff',
-  },
-  gridPrendas: {
-    padding: 10,
-  },
-  cardPrenda: {
-    flex: 1,
-    margin: 10,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 15,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  header: { padding: 20, paddingBottom: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
+  titulo: { fontSize: 28, fontWeight: 'bold', color: '#333', marginBottom: 15 },
+  listaCategorias: { flexGrow: 0 },
+  pildoraCategoria: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f0f0f0', marginRight: 10 },
+  pildoraActiva: { backgroundColor: '#5c4033' },
+  textoCategoria: { color: '#666', fontWeight: '600' },
+  textoCategoriaActiva: { color: '#fff' },
+  
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  textoCargando: { marginTop: 10, color: '#666', fontSize: 16 },
+  
+  gridPrendas: { padding: 10 },
+  cardPrenda: { flex: 1, margin: 10, backgroundColor: '#fff', borderRadius: 15, padding: 15, alignItems: 'center', elevation: 2 },
+  
   imagenPrenda: {
     width: '100%',
-    height: 100,
+    height: 120, // Lo hemos hecho un poco más alto para que las fotos queden bien
     backgroundColor: '#f9f5f3',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
-    position: 'relative', // Necesario para posicionar la estrella
   },
-  iconoFavorito: {
-    position: 'absolute',
-    top: 5,
-    left: 5,
-    zIndex: 1,
+  imagenReal: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+    resizeMode: 'cover', // Asegura que la foto ocupe todo el espacio sin deformarse
   },
-  nombrePrenda: {
-    fontSize: 15,
-    color: '#333',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  tejidoPrenda: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 4,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 50,
-  },
-  textoVacio: {
-    marginTop: 10,
-    color: '#888',
-    fontSize: 16,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: '#5c4033',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-  },
+  iconoFavorito: { position: 'absolute', top: 5, left: 5, zIndex: 1 },
+  
+  nombrePrenda: { fontSize: 15, color: '#333', fontWeight: '600', textAlign: 'center' },
+  tejidoPrenda: { fontSize: 12, color: '#888', marginTop: 4 },
+  
+  emptyContainer: { alignItems: 'center', marginTop: 50 },
+  textoVacio: { marginTop: 10, color: '#888', fontSize: 16 },
+  
+  fab: { position: 'absolute', bottom: 20, right: 20, backgroundColor: '#5c4033', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5 },
 });
