@@ -1,19 +1,32 @@
 import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router'; // Importante para recargar al cambiar de pestaña
+import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
+const { width } = Dimensions.get('window');
 const CATEGORIAS = ['Todas', 'Partes de arriba', 'Pantalones', 'Jerseys', 'Abrigos y chaquetas', 'Favoritos'];
 
 export default function PrendasScreen() {
   const [categoriaActiva, setCategoriaActiva] = useState('Todas');
-  
-  // --- NUEVOS ESTADOS PARA LA BASE DE DATOS ---
   const [prendas, setPrendas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- RECARGAR PRENDAS CADA VEZ QUE ENTRAMOS EN LA PESTAÑA ---
+  // --- NUEVOS ESTADOS PARA EL DETALLE ---
+  const [prendaSeleccionada, setPrendaSeleccionada] = useState<any | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
   useFocusEffect(
     useCallback(() => {
       cargarPrendas();
@@ -26,7 +39,6 @@ export default function PrendasScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Pedimos a Supabase todas las prendas de este usuario, ordenadas por la más reciente
       const { data, error } = await supabase
         .from('prendas')
         .select('*')
@@ -34,10 +46,7 @@ export default function PrendasScreen() {
         .order('fecha_registro', { ascending: false });
 
       if (error) throw error;
-      
-      if (data) {
-        setPrendas(data); // Guardamos la ropa real en la variable
-      }
+      if (data) setPrendas(data);
     } catch (error: any) {
       Alert.alert('Error', 'No pudimos cargar tu armario: ' + error.message);
     } finally {
@@ -45,58 +54,44 @@ export default function PrendasScreen() {
     }
   };
 
-  // --- LÓGICA DE FILTRADO CON LOS DATOS REALES ---
   const prendasFiltradas = prendas.filter(prenda => {
     if (categoriaActiva === 'Todas') return true;
-    
-    // Fíjate que usamos 'es_favorito' con guion bajo, como lo tienes en tu base de datos
     if (categoriaActiva === 'Favoritos') return prenda.es_favorito;
-
     if (categoriaActiva === 'Partes de arriba') {
       return ['Partes de arriba', 'Jerseys', 'Abrigos y chaquetas', 'Camisas y blusas'].includes(prenda.categoria);
     }
-
-    if (categoriaActiva === 'Pantalones' || categoriaActiva === 'Partes de abajo') {
-      return ['Pantalones', 'Faldas', 'Partes de abajo'].includes(prenda.categoria);
+    if (categoriaActiva === 'Pantalones') {
+      return ['Pantalones', 'Faldas'].includes(prenda.categoria);
     }
-
     return prenda.categoria === categoriaActiva;
   });
 
-  // --- DIBUJAMOS CADA PRENDA ---
+  // --- FUNCIÓN PARA ABRIR EL DETALLE ---
+  const verDetalle = (prenda: any) => {
+    setPrendaSeleccionada(prenda);
+    setModalVisible(true);
+  };
+
   const renderPrenda = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.cardPrenda}>
-      <View style={styles.imagenPrenda}>
-        
+    <TouchableOpacity style={styles.cardPrenda} onPress={() => verDetalle(item)}>
+      <View style={styles.imagenPrendaContenedor}>
         {item.es_favorito && (
-          <MaterialCommunityIcons 
-            name="star" 
-            size={24} 
-            color="#a89078" 
-            style={styles.iconoFavorito} 
-          />
+          <MaterialCommunityIcons name="star" size={20} color="#a89078" style={styles.iconoFavorito} />
         )}
-        
-        {/* MAGIA: Si hay URL, mostramos la foto. Si no, un icono de respaldo */}
         {item.imagen_url ? (
-          <Image source={{ uri: item.imagen_url }} style={styles.imagenReal} />
+          <Image source={{ uri: item.imagen_url }} style={styles.imagenMiniatura} />
         ) : (
-          <MaterialCommunityIcons name="tshirt-crew" size={50} color="#5c4033" />
+          <MaterialCommunityIcons name="tshirt-crew" size={40} color="#5c4033" />
         )}
       </View>
-      
       <Text style={styles.nombrePrenda} numberOfLines={1}>{item.nombre}</Text>
-      <Text style={styles.tejidoPrenda}>{item.categoria}</Text>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      
-      {/* CABECERA Y FILTROS */}
       <View style={styles.header}>
         <Text style={styles.titulo}>Mi Ropa</Text>
-        
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -105,16 +100,10 @@ export default function PrendasScreen() {
           style={styles.listaCategorias}
           renderItem={({ item }) => (
             <TouchableOpacity 
-              style={[
-                styles.pildoraCategoria, 
-                categoriaActiva === item && styles.pildoraActiva
-              ]}
+              style={[styles.pildoraCategoria, categoriaActiva === item && styles.pildoraActiva]}
               onPress={() => setCategoriaActiva(item)}
             >
-              <Text style={[
-                styles.textoCategoria,
-                categoriaActiva === item && styles.textoCategoriaActiva
-              ]}>
+              <Text style={[styles.textoCategoria, categoriaActiva === item && styles.textoCategoriaActiva]}>
                 {item}
               </Text>
             </TouchableOpacity>
@@ -122,77 +111,118 @@ export default function PrendasScreen() {
         />
       </View>
 
-      {/* CONTENIDO PRINCIPAL: RULETA DE CARGA O LISTA DE PRENDAS */}
       {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#5c4033" />
-          <Text style={styles.textoCargando}>Abriendo las puertas del armario...</Text>
-        </View>
+        <View style={styles.centerContainer}><ActivityIndicator size="large" color="#5c4033" /></View>
       ) : (
         <FlatList
           data={prendasFiltradas}
           keyExtractor={(item) => item.id}
           renderItem={renderPrenda}
           numColumns={2}
-          showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.gridPrendas}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <MaterialCommunityIcons name="hanger" size={40} color="#ccc" />
-              <Text style={styles.textoVacio}>No hay prendas en esta categoría.</Text>
+              <Text style={styles.textoVacio}>No hay prendas aquí todavía.</Text>
             </View>
           }
         />
       )}
 
-      {/* BOTÓN FLOTANTE PARA AÑADIR */}
+      {/* --- MODAL DE DETALLE (PRENDA EN GRANDE) --- */}
+      <Modal
+        visible={modalVisible}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          {/* BOTÓN CERRAR */}
+          <TouchableOpacity style={styles.botonCerrarDetalle} onPress={() => setModalVisible(false)}>
+            <MaterialCommunityIcons name="close" size={30} color="#fff" />
+          </TouchableOpacity>
+
+          {prendaSeleccionada && (
+            <>
+              {/* IMAGEN EN GRANDE */}
+              <Image 
+                source={{ uri: prendaSeleccionada.imagen_url }} 
+                style={styles.imagenGrande} 
+                resizeMode="contain"
+              />
+
+              {/* PANEL DE INFORMACIÓN (DESCRIPCIÓN) */}
+              <View style={styles.infoPanel}>
+                <Text style={styles.detalleNombre}>{prendaSeleccionada.nombre}</Text>
+                
+                <View style={styles.divisor} />
+                
+                <View style={styles.detalleFila}>
+                  <MaterialCommunityIcons name="tag-outline" size={20} color="#666" />
+                  <Text style={styles.detalleTexto}>Categoría: <Text style={styles.bold}>{prendaSeleccionada.categoria}</Text></Text>
+                </View>
+
+                <View style={styles.detalleFila}>
+                  <MaterialCommunityIcons name="palette-outline" size={20} color="#666" />
+                  <Text style={styles.detalleTexto}>Color: <Text style={styles.bold}>{prendaSeleccionada.color}</Text></Text>
+                </View>
+
+                {prendaSeleccionada.fecha_registro && (
+                  <Text style={styles.textoFecha}>
+                    Añadida el {new Date(prendaSeleccionada.fecha_registro).toLocaleDateString()}
+                  </Text>
+                )}
+              </View>
+            </>
+          )}
+        </View>
+      </Modal>
+
       <TouchableOpacity style={styles.fab}>
         <MaterialCommunityIcons name="plus" size={30} color="#fff" />
       </TouchableOpacity>
-
     </View>
   );
 }
 
-// --- ESTILOS VISUALES ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { padding: 20, paddingBottom: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
+  header: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
   titulo: { fontSize: 28, fontWeight: 'bold', color: '#333', marginBottom: 15 },
   listaCategorias: { flexGrow: 0 },
   pildoraCategoria: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f0f0f0', marginRight: 10 },
   pildoraActiva: { backgroundColor: '#5c4033' },
   textoCategoria: { color: '#666', fontWeight: '600' },
   textoCategoriaActiva: { color: '#fff' },
-  
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  textoCargando: { marginTop: 10, color: '#666', fontSize: 16 },
-  
   gridPrendas: { padding: 10 },
-  cardPrenda: { flex: 1, margin: 10, backgroundColor: '#fff', borderRadius: 15, padding: 15, alignItems: 'center', elevation: 2 },
-  
-  imagenPrenda: {
-    width: '100%',
-    height: 120, // Lo hemos hecho un poco más alto para que las fotos queden bien
-    backgroundColor: '#f9f5f3',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  imagenReal: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-    resizeMode: 'cover', // Asegura que la foto ocupe todo el espacio sin deformarse
-  },
-  iconoFavorito: { position: 'absolute', top: 5, left: 5, zIndex: 1 },
-  
-  nombrePrenda: { fontSize: 15, color: '#333', fontWeight: '600', textAlign: 'center' },
-  tejidoPrenda: { fontSize: 12, color: '#888', marginTop: 4 },
-  
+  cardPrenda: { flex: 1, margin: 8, backgroundColor: '#fff', borderRadius: 12, padding: 10, alignItems: 'center', elevation: 2 },
+  imagenPrendaContenedor: { width: '100%', height: 120, backgroundColor: '#f9f5f3', borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  imagenMiniatura: { width: '100%', height: '100%', borderRadius: 8 },
+  iconoFavorito: { position: 'absolute', top: 4, left: 4, zIndex: 1 },
+  nombrePrenda: { fontSize: 14, color: '#333', fontWeight: '600' },
   emptyContainer: { alignItems: 'center', marginTop: 50 },
-  textoVacio: { marginTop: 10, color: '#888', fontSize: 16 },
-  
+  textoVacio: { marginTop: 10, color: '#888' },
   fab: { position: 'absolute', bottom: 20, right: 20, backgroundColor: '#5c4033', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5 },
+
+  // --- ESTILOS DEL DETALLE (MODAL) ---
+  modalContainer: { flex: 1, backgroundColor: '#000', justifyContent: 'center' },
+  botonCerrarDetalle: { position: 'absolute', top: 50, right: 20, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, padding: 5 },
+  imagenGrande: { width: width, height: width * 1.3 },
+  infoPanel: { 
+    position: 'absolute', 
+    bottom: 0, 
+    width: '100%', 
+    backgroundColor: '#fff', 
+    borderTopLeftRadius: 30, 
+    borderTopRightRadius: 30, 
+    padding: 30,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 10
+  },
+  detalleNombre: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 10 },
+  divisor: { height: 1, backgroundColor: '#eee', marginBottom: 20 },
+  detalleFila: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  detalleTexto: { fontSize: 16, color: '#555', marginLeft: 10 },
+  bold: { fontWeight: 'bold', color: '#333' },
+  textoFecha: { fontSize: 12, color: '#999', marginTop: 15, textAlign: 'right' }
 });
