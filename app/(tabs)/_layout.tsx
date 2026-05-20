@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Link, Tabs } from 'expo-router';
 import React from 'react';
+import { Pressable } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 //import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -17,9 +18,16 @@ export default function TabLayout() {
         headerShown: true,
         headerStyle: { backgroundColor: '#5c4033' },
         headerTintColor: '#fff',
+        headerTitleAlign: 'left', // Añade esta línea
         tabBarButton: HapticTab,
+        headerRight: () => (
+          <Link href="/perfil" asChild>
+            <Pressable style={{ marginRight: 15 }}>
+              <MaterialCommunityIcons name="account-circle" size={28} color="#fff" />
+            </Pressable>
+          </Link>
+        ),
       }}>
-
 
       <Tabs.Screen
         name="outfit"
@@ -54,6 +62,13 @@ export default function TabLayout() {
         options={{
           title: 'Armario',
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="wardrobe" size={28} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: 'Mi Perfil',
+          href: null, 
         }}
       />
     </Tabs>
