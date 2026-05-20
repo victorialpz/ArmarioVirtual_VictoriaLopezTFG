@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
+
+import { logger } from '@/lib/logger';
 import {
   ActivityIndicator,
   Alert,
@@ -35,9 +37,13 @@ export default function PrendasScreen() {
 
   const cargarPrendas = async () => {
     try {
+      logger.info('PrendasScreen', 'Cargando prendas del usuario');
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        logger.warn('PrendasScreen', 'Usuario no autenticado al cargar prendas');
+        return;
+      }
 
       const { data, error } = await supabase
         .from('prendas')
@@ -46,8 +52,12 @@ export default function PrendasScreen() {
         .order('fecha_registro', { ascending: false });
 
       if (error) throw error;
-      if (data) setPrendas(data);
+      if (data) {
+        logger.info('PrendasScreen', 'Prendas cargadas', { count: data.length });
+        setPrendas(data);
+      }
     } catch (error: any) {
+      logger.error('PrendasScreen', error);
       Alert.alert('Error', 'No pudimos cargar tu armario: ' + error.message);
     } finally {
       setLoading(false);
@@ -95,7 +105,7 @@ export default function PrendasScreen() {
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={CATEGORIAS_FILTRO}
+          data={CATEGORIAS}
           keyExtractor={(item) => item}
           style={styles.listaCategorias}
           renderItem={({ item }) => (

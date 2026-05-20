@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
+import { logger } from '@/lib/logger';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
@@ -14,6 +15,7 @@ export default function LoginScreen() {
         Keyboard.dismiss(); 
         
         if (!email || !password) {
+            logger.warn('LoginScreen', 'Faltan credenciales para iniciar sesión', { emailProvided: !!email, passwordProvided: !!password });
             Alert.alert('Datos incompletos', 'Por favor, escribe tu correo y contraseña para entrar.');
             return; 
         }
@@ -25,8 +27,10 @@ export default function LoginScreen() {
         });
 
         if (error) {
+            logger.error('LoginScreen', error, { email });
             Alert.alert('Error al iniciar sesión', error.message);
         } else {
+            logger.info('LoginScreen', 'Inicio de sesión correcto', { email });
             router.replace('/(tabs)');
         }
         setLoading(false);

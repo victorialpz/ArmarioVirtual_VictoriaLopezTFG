@@ -2,17 +2,19 @@ import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router'; // Importante para redireccionar al login
 import React, { useEffect, useState } from 'react';
+
+import { logger } from '@/lib/logger';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 export default function PerfilScreen() {
@@ -37,6 +39,7 @@ export default function PerfilScreen() {
 
   const cargarDatosDelUsuario = async () => {
     try {
+      logger.info('PerfilScreen', 'Cargando datos de usuario');
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -50,6 +53,7 @@ export default function PerfilScreen() {
         if (error) throw error;
 
         if (data) {
+          logger.info('PerfilScreen', 'Datos de usuario cargados', { userId: user.id });
           setFormData({
             usuario: data.usuario || '',
             correo: data.email || '',
@@ -64,6 +68,7 @@ export default function PerfilScreen() {
         }
       }
     } catch (error: any) {
+      logger.error('PerfilScreen', error);
       Alert.alert('Error', 'No se pudieron cargar tus datos: ' + error.message);
     } finally {
       setLoading(false);
@@ -76,6 +81,7 @@ export default function PerfilScreen() {
 
   const guardarCambios = async () => {
     try {
+      logger.info('PerfilScreen', 'Guardando cambios de perfil', { formData: { usuario: formData.usuario, telefono: formData.telefono, sexo: formData.sexo } });
       setGuardando(true);
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -94,9 +100,11 @@ export default function PerfilScreen() {
           .eq('id', user.id);
 
         if (error) throw error;
+        logger.info('PerfilScreen', 'Perfil actualizado correctamente', { userId: user.id });
         Alert.alert('¡Éxito!', 'Perfil actualizado correctamente.');
       }
     } catch (error: any) {
+      logger.error('PerfilScreen', error);
       Alert.alert('Error', error.message);
     } finally {
       setGuardando(false);
@@ -116,8 +124,10 @@ export default function PerfilScreen() {
           onPress: async () => {
             const { error } = await supabase.auth.signOut();
             if (error) {
+              logger.error('PerfilScreen', error, { action: 'signOut' });
               Alert.alert('Error', 'No se pudo cerrar la sesión');
             } else {
+              logger.info('PerfilScreen', 'Sesión cerrada por el usuario');
               router.replace('/login');
             }
           } 

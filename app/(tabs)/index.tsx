@@ -4,12 +4,14 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { logger } from '@/lib/logger';
+
 const OPCIONES_CATEGORIA = [
   'Partes de arriba', 'Pantalones', 'Faldas', 'Jerseys', 'Abrigos y chaquetas', 'Vestidos', 'Camisas y blusas', 'Accesorios'
 ];
 
 // ⚠️ RECUERDA: Cambia esta URL cada vez que arranques Google Colab de nuevo
-const MI_API_URL = "https://nine-sloths-mix.loca.lt/quitar-fondo"; 
+const MI_API_URL = "https://fast-poems-decide.loca.lt/quitar-fondo"; 
 
 export default function HomeScreen() {
   
@@ -23,6 +25,7 @@ export default function HomeScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
+      logger.warn('HomeScreen', 'Permiso de galería denegado');
       Alert.alert('Permiso necesario', '¡Necesitamos permisos para acceder a tu galería!');
       return;
     }
@@ -46,8 +49,11 @@ export default function HomeScreen() {
     }
 
     try {
+      logger.info('HomeScreen', 'Subida de prenda iniciada', { imageUri, nombre, categoria, color });
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Debes iniciar sesión para subir prendas.");
+      if (!user) {
+        throw new Error("Debes iniciar sesión para subir prendas.");
+      }
 
       setEstadoCarga('Procesando con la IA... 🧠');
 
@@ -103,6 +109,7 @@ export default function HomeScreen() {
 
       if (dbError) throw dbError;
 
+      logger.info('HomeScreen', 'Prenda guardada correctamente', { userId: user.id, fileName, publicUrl });
       Alert.alert('¡Magia propia!', 'La IA ha procesado la imagen y se ha guardado correctamente.');
       setImageUri(null);
       setNombre('');
@@ -110,6 +117,7 @@ export default function HomeScreen() {
       setColor('');
 
     } catch (error: any) {
+      logger.error('HomeScreen', error, { imageUri, nombre, categoria, color });
       Alert.alert('Error', error.message);
     } finally {
       setEstadoCarga('');

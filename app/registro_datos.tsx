@@ -5,6 +5,8 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { logger } from '@/lib/logger';
+
 export default function RegistroDatosScreen() {
   const [formData, setFormData] = useState({
     email: '',
@@ -21,49 +23,59 @@ export default function RegistroDatosScreen() {
     const { email, password, usuario, nombre, apellidos, telefono } = formData;
 
     if (!email || !password || !usuario) {
+      logger.warn('RegistroDatosScreen', 'Datos de registro incompletos', { emailProvided: !!email, passwordProvided: !!password, usuarioProvided: !!usuario });
       Alert.alert('Error', 'Correo, Contraseña y Usuario son obligatorios.');
       return;
     }
 
     setLoading(true);
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      logger.info('RegistroDatosScreen', 'Iniciando registro de usuario', { email, usuario });
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    if (authError) {
-      Alert.alert('Error en el registro', authError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (authData.user) {
-      const { error: profileError } = await supabase
-        .from('usuarios') 
-        .insert([
-          {
-            id: authData.user.id,
-            usuario,
-            nombre,
-            apellidos,
-            telefono,
-            email
-          }
-        ]);
-
-      if (profileError) {
-        if (profileError.code === '23505') {
-          Alert.alert('Error', 'Ese nombre de usuario ya está cogido. Prueba otro.');
-        } else {
-          Alert.alert('Error al guardar perfil', profileError.message);
-        }
-      } else {
-        Alert.alert('¡Bienvenido!', 'Cuenta creada con éxito.');
-        router.replace('/(tabs)');
+      if (authError) {
+        logger.error('RegistroDatosScreen', authError, { email, usuario });
+        Alert.alert('Error en el registro', authError.message);
+        return;
       }
+
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('usuarios') 
+          .insert([
+            {
+              id: authData.user.id,
+              usuario,
+              nombre,
+              apellidos,
+              telefono,
+              email
+            }
+          ]);
+
+        if (profileError) {
+          logger.error('RegistroDatosScreen', profileError, { userId: authData.user.id, usuario });
+          if (profileError.code === '23505') {
+            Alert.alert('Error', 'Ese nombre de usuario ya está cogido. Prueba otro.');
+          } else {
+            Alert.alert('Error al guardar perfil', profileError.message);
+          }
+        } else {
+          logger.info('RegistroDatosScreen', 'Registro completado correctamente', { userId: authData.user.id, usuario });
+          Alert.alert('¡Bienvenido!', 'Cuenta creada con éxito.');
+          router.replace('/(tabs)');
+        }
+      }
+    } catch (error: any) {
+      logger.error('RegistroDatosScreen', error, { formData: { email, usuario } });
+      Alert.alert('Error en el registro', error.message || 'Ocurrió un error inesperado.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
