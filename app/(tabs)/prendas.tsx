@@ -95,7 +95,7 @@ export default function PrendasScreen() {
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={CATEGORIAS}
+          data={CATEGORIAS_FILTRO}
           keyExtractor={(item) => item}
           style={styles.listaCategorias}
           renderItem={({ item }) => (
