@@ -9,7 +9,7 @@ const OPCIONES_CATEGORIA = [
 ];
 
 // ⚠️ RECUERDA: Cambia esta URL cada vez que arranques Google Colab de nuevo
-const MI_API_URL = "https://nine-sloths-mix.loca.lt/quitar-fondo"; 
+const MI_API_URL = "https://poor-rockets-divide.loca.lt/quitar-fondo";
 
 export default function HomeScreen() {
   
@@ -17,7 +17,7 @@ export default function HomeScreen() {
   const [estadoCarga, setEstadoCarga] = useState(''); 
   const [nombre, setNombre] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [color, setColor] = useState('');
+  const [color, setColor] = useState(''); 
   const [modalVisible, setModalVisible] = useState(false);
 
   const pickImage = async () => {
@@ -51,12 +51,16 @@ export default function HomeScreen() {
 
       setEstadoCarga('Procesando con la IA... 🧠');
 
-      // 1. PREPARAMOS LA FOTO PARA TU API
+      // 1. PREPARAMOS LA FOTO (Lógica blindada para iOS)
+      const nombreArchivo = imageUri.split('/').pop() || 'prenda.jpg';
+      const match = /\.(\w+)$/.exec(nombreArchivo);
+      const tipoArchivo = match ? `image/${match[1]}` : `image/jpeg`;
+
       const formData = new FormData();
       formData.append('file', {
-        uri: imageUri,
-        name: 'prenda.jpg',
-        type: 'image/jpeg',
+        uri: imageUri, // Mantenemos la ruta original de iOS
+        name: nombreArchivo,
+        type: tipoArchivo,
       } as any);
 
       // 2. LLAMAMOS A TU CEREBRO EN GOOGLE COLAB
@@ -64,7 +68,8 @@ export default function HomeScreen() {
         method: 'POST',
         body: formData,
         headers: {
-          'Bypass-Tunnel-Reminder': 'true' // <-- ¡Pase VIP para saltar el bloqueo de LocalTunnel!
+          'Bypass-Tunnel-Reminder': 'true',
+          'Accept': 'application/json'
         }
       });
 
@@ -72,21 +77,18 @@ export default function HomeScreen() {
         throw new Error("Fallo al conectar. Revisa que tu cuaderno de Colab siga abierto y la URL sea correcta.");
       }
 
-// 3. RECIBIMOS LA FOTO EN FORMATO SEGURO (ARRAYBUFFER)
-      const bufferImagen = await apiResponse.arrayBuffer(); // <-- ¡Adiós al bug del blob!
+      // 3. RECIBIMOS LA FOTO EN FORMATO SEGURO (ARRAYBUFFER)
+      const bufferImagen = await apiResponse.arrayBuffer();
 
       // 4. SUBIMOS A SUPABASE
       setEstadoCarga('Guardando en tu armario... ☁️');
       const fileName = `${user.id}/${Date.now()}_prenda.jpeg`;
 
-      // Subimos el buffer directamente
       const { error: uploadError } = await supabase.storage
         .from('prendas')
         .upload(fileName, bufferImagen, { contentType: 'image/jpeg', upsert: false });
-// Obtenemos la respuesta de Supabase
+
       const urlResponse = supabase.storage.from('prendas').getPublicUrl(fileName);
-      
-      // La extraemos de forma segura (compatible con cualquier versión)
       const publicUrl = urlResponse.data?.publicUrl || (urlResponse as any).publicURL;
 
       if (!publicUrl) {
@@ -136,7 +138,7 @@ export default function HomeScreen() {
       {!imageUri && (
         <TouchableOpacity style={styles.botonQuickAdd} onPress={pickImage}>
           <MaterialCommunityIcons name="plus-circle" size={24} color="#fff" />
-          <Text style={styles.textoQuickAdd}>Añadir Prenda Rápida</Text>
+          <Text style={styles.textoQuickAdd}>Añadir Prenda </Text>
         </TouchableOpacity>
       )}
 
