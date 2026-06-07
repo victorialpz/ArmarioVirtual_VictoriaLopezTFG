@@ -1,128 +1,25 @@
-import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { logger } from '@/lib/logger';
-
-const OPCIONES_CATEGORIA = [
-  'Partes de arriba', 'Pantalones', 'Faldas', 'Jerseys', 'Abrigos y chaquetas', 'Vestidos', 'Camisas y blusas', 'Accesorios'
-];
-
-// ⚠️ RECUERDA: Cambia esta URL cada vez que arranques Google Colab de nuevo
-const MI_API_URL = "https://fast-poems-decide.loca.lt/quitar-fondo"; 
+import { COLORES_COMUNES, ESTILOS_COMUNES, OPCIONES_CATEGORIA, TIPOS_TELA } from '../../constants/opciones';
+import { useSubirPrenda } from '../../hooks/useSubirPrenda';
 
 export default function HomeScreen() {
-  
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [estadoCarga, setEstadoCarga] = useState(''); 
-  const [nombre, setNombre] = useState('');
-  const [categoria, setCategoria] = useState('');
-  const [color, setColor] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
+  const [modalColorVisible, setModalColorVisible] = useState(false);
+  const [modalTelaVisible, setModalTelaVisible] = useState(false);
+  const [modalEstiloVisible, setModalEstiloVisible] = useState(false);
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      logger.warn('HomeScreen', 'Permiso de galería denegado');
-      Alert.alert('Permiso necesario', '¡Necesitamos permisos para acceder a tu galería!');
-      return;
-    }
-
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false, 
-      quality: 0.8, 
-    });
-
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-    }
-  };
-
-  const subirPrenda = async () => {
-    if (!imageUri) return;
-    if (!nombre || !categoria || !color) {
-        Alert.alert("Faltan datos", "Por favor, rellena el nombre, la categoría y el color.");
-        return;
-    }
-
-    try {
-      logger.info('HomeScreen', 'Subida de prenda iniciada', { imageUri, nombre, categoria, color });
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("Debes iniciar sesión para subir prendas.");
-      }
-
-      setEstadoCarga('Procesando con la IA... 🧠');
-
-      // 1. PREPARAMOS LA FOTO PARA TU API
-      const formData = new FormData();
-      formData.append('file', {
-        uri: imageUri,
-        name: 'prenda.jpg',
-        type: 'image/jpeg',
-      } as any);
-
-      // 2. LLAMAMOS A TU CEREBRO EN GOOGLE COLAB
-      const apiResponse = await fetch(MI_API_URL, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Bypass-Tunnel-Reminder': 'true' // <-- ¡Pase VIP para saltar el bloqueo de LocalTunnel!
-        }
-      });
-
-      if (!apiResponse.ok) {
-        throw new Error("Fallo al conectar. Revisa que tu cuaderno de Colab siga abierto y la URL sea correcta.");
-      }
-
-// 3. RECIBIMOS LA FOTO EN FORMATO SEGURO (ARRAYBUFFER)
-      const bufferImagen = await apiResponse.arrayBuffer(); // <-- ¡Adiós al bug del blob!
-
-      // 4. SUBIMOS A SUPABASE
-      setEstadoCarga('Guardando en tu armario... ☁️');
-      const fileName = `${user.id}/${Date.now()}_prenda.jpeg`;
-
-      // Subimos el buffer directamente
-      const { error: uploadError } = await supabase.storage
-        .from('prendas')
-        .upload(fileName, bufferImagen, { contentType: 'image/jpeg', upsert: false });
-// Obtenemos la respuesta de Supabase
-      const urlResponse = supabase.storage.from('prendas').getPublicUrl(fileName);
-      
-      // La extraemos de forma segura (compatible con cualquier versión)
-      const publicUrl = urlResponse.data?.publicUrl || (urlResponse as any).publicURL;
-
-      if (!publicUrl) {
-          throw new Error("No se pudo generar la URL pública de la imagen.");
-      }
-      // 5. GUARDAMOS EN BASE DE DATOS
-      const { error: dbError } = await supabase.from('prendas').insert({
-          id_usuario: user.id,
-          nombre: nombre,
-          categoria: categoria,
-          color: color,
-          imagen_url: publicUrl,
-        });
-
-      if (dbError) throw dbError;
-
-      logger.info('HomeScreen', 'Prenda guardada correctamente', { userId: user.id, fileName, publicUrl });
-      Alert.alert('¡Magia propia!', 'La IA ha procesado la imagen y se ha guardado correctamente.');
-      setImageUri(null);
-      setNombre('');
-      setCategoria('');
-      setColor('');
-
-    } catch (error: any) {
-      logger.error('HomeScreen', error, { imageUri, nombre, categoria, color });
-      Alert.alert('Error', error.message);
-    } finally {
-      setEstadoCarga('');
-    }
-  };
+  const { 
+    imageUri, setImageUri, estadoCarga, 
+    nombre, setNombre, 
+    categoria, setCategoria, 
+    color, setColor,
+    tipoTela, setTipoTela,
+    estilos, toggleEstilo,
+    modalVisible: modalCategoriaVisible, setModalVisible: setModalCategoriaVisible, 
+    pickImage, subirPrenda 
+  } = useSubirPrenda();
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -153,22 +50,29 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Nueva prenda:</Text>
           <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
           
-          <TextInput style={styles.input} placeholder="Nombre (ej: Camiseta básica)" value={nombre} onChangeText={setNombre} />
+          {/* CAMBIADO A DESCRIPCIÓN */}
+          <TextInput style={styles.input} placeholder="Descripción (ej: Camiseta básica lisa)" value={nombre} onChangeText={setNombre} placeholderTextColor="#999" />
           
-          <TouchableOpacity style={[styles.input, { justifyContent: 'center' }]} onPress={() => setModalVisible(true)}>
-            <Text style={{ color: categoria ? '#333' : '#999', fontSize: 16 }}>
-              {categoria ? categoria : 'Selecciona una categoría...'}
-            </Text>
+          <TouchableOpacity style={styles.input} onPress={() => setModalCategoriaVisible(true)}>
+            <Text style={{ color: categoria ? '#333' : '#999', fontSize: 16 }}>{categoria ? categoria : 'Selecciona una categoría...'}</Text>
           </TouchableOpacity>
 
-          <TextInput style={styles.input} placeholder="Color (ej: Blanco)" value={color} onChangeText={setColor} />
+          <TouchableOpacity style={styles.input} onPress={() => setModalColorVisible(true)}>
+            <Text style={{ color: color ? '#333' : '#999', fontSize: 16 }}>{color ? color : 'Selecciona un color...'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.input} onPress={() => setModalTelaVisible(true)}>
+            <Text style={{ color: tipoTela ? '#333' : '#999', fontSize: 16 }}>{tipoTela ? tipoTela : 'Selecciona el tipo de tela...'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.input} onPress={() => setModalEstiloVisible(true)}>
+            <Text style={{ color: estilos.length > 0 ? '#333' : '#999', fontSize: 16 }}>
+              {estilos.length > 0 ? `Estilo: ${estilos.join(', ')}` : 'Selecciona estilo (máx 2)...'}
+            </Text>
+          </TouchableOpacity>
           
           <View style={styles.previewButtonsRow}>
-            <TouchableOpacity 
-              style={[styles.botonSubir, estadoCarga !== '' && { backgroundColor: '#a5d6a7' }]}
-              onPress={subirPrenda}
-              disabled={estadoCarga !== ''}
-            >
+            <TouchableOpacity style={[styles.botonSubir, estadoCarga !== '' && { backgroundColor: '#a5d6a7' }]} onPress={subirPrenda} disabled={estadoCarga !== ''}>
               {estadoCarga !== '' ? (
                 <>
                   <ActivityIndicator color="#fff" style={{marginRight: 10}} />
@@ -189,42 +93,54 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Elige la categoría</Text>
-            <FlatList
-              data={OPCIONES_CATEGORIA}
-              keyExtractor={(item) => item}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={styles.modalOpcion} 
-                  onPress={() => { setCategoria(item); setModalVisible(false); }}
-                >
-                  <Text style={styles.textoOpcion}>{item}</Text>
-                </TouchableOpacity>
-              )}
-            />
-            <TouchableOpacity style={styles.botonCerrarModal} onPress={() => setModalVisible(false)}>
-              <Text style={styles.textoCerrarModal}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+      {/* --- MODALES INTERNOS --- */}
+      <Modal visible={modalCategoriaVisible} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}><View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Elige la categoría</Text>
+          <FlatList data={OPCIONES_CATEGORIA} keyExtractor={(item) => item} renderItem={({ item }) => (
+            <TouchableOpacity style={styles.modalOpcion} onPress={() => { setCategoria(item); setModalCategoriaVisible(false); }}><Text style={styles.textoOpcion}>{item}</Text></TouchableOpacity>
+          )}/>
+          <TouchableOpacity style={styles.botonCerrarModal} onPress={() => setModalCategoriaVisible(false)}><Text style={styles.textoCerrarModal}>Cancelar</Text></TouchableOpacity>
+        </View></View>
       </Modal>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Tus últimos outfits</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carousel}>
-          <View style={styles.outfitCard}>
-            <View style={styles.imagePlaceholder}><MaterialCommunityIcons name="tshirt-crew" size={40} color="#a9a9a9" /></View>
-            <Text style={styles.outfitDate}>Hoy</Text>
-          </View>
-          <View style={styles.outfitCard}>
-            <View style={styles.imagePlaceholder}><MaterialCommunityIcons name="tshirt-crew" size={40} color="#a9a9a9" /></View>
-            <Text style={styles.outfitDate}>Ayer</Text>
-          </View>
-        </ScrollView>
-      </View>
+      <Modal visible={modalColorVisible} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}><View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Elige el color</Text>
+          <FlatList data={COLORES_COMUNES} keyExtractor={(item) => item} renderItem={({ item }) => (
+            <TouchableOpacity style={styles.modalOpcion} onPress={() => { setColor(item); setModalColorVisible(false); }}><Text style={styles.textoOpcion}>{item}</Text></TouchableOpacity>
+          )}/>
+          <TouchableOpacity style={styles.botonCerrarModal} onPress={() => setModalColorVisible(false)}><Text style={styles.textoCerrarModal}>Cancelar</Text></TouchableOpacity>
+        </View></View>
+      </Modal>
+
+      <Modal visible={modalTelaVisible} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}><View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Elige el tipo de tela</Text>
+          <FlatList data={TIPOS_TELA} keyExtractor={(item) => item} renderItem={({ item }) => (
+            <TouchableOpacity style={styles.modalOpcion} onPress={() => { setTipoTela(item); setModalTelaVisible(false); }}><Text style={styles.textoOpcion}>{item}</Text></TouchableOpacity>
+          )}/>
+          <TouchableOpacity style={styles.botonCerrarModal} onPress={() => setModalTelaVisible(false)}><Text style={styles.textoCerrarModal}>Cancelar</Text></TouchableOpacity>
+        </View></View>
+      </Modal>
+
+      <Modal visible={modalEstiloVisible} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}><View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Selecciona Estilos (Máx 2)</Text>
+          <FlatList data={ESTILOS_COMUNES} keyExtractor={(item) => item} renderItem={({ item }) => {
+            const seleccionado = estilos.includes(item);
+            return (
+              <TouchableOpacity style={[styles.modalOpcionRow, seleccionado && styles.opcionSeleccionada]} onPress={() => toggleEstilo(item)}>
+                <Text style={[styles.textoOpcion, seleccionado && { fontWeight: 'bold', color: '#5c4033' }]}>{item}</Text>
+                {seleccionado && <MaterialCommunityIcons name="check" size={20} color="#5c4033" />}
+              </TouchableOpacity>
+            );
+          }}/>
+          <TouchableOpacity style={[styles.botonCerrarModal, { backgroundColor: '#5c4033' }]} onPress={() => setModalEstiloVisible(false)}>
+            <Text style={[styles.textoCerrarModal, { color: '#fff' }]}>Aceptar ({estilos.length}/2)</Text>
+          </TouchableOpacity>
+        </View></View>
+      </Modal>
 
     </ScrollView>
   );
@@ -243,11 +159,11 @@ const styles = StyleSheet.create({
   textoQuickAdd: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
   previewContainer: { backgroundColor: '#fff', borderRadius: 15, padding: 15, marginBottom: 35, alignItems: 'center', elevation: 2 },
   previewImage: { width: 200, height: 266, borderRadius: 10, marginBottom: 15, backgroundColor: '#f9f5f3' },
-  input: { width: '100%', backgroundColor: '#f9f5f3', padding: 12, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#e0e0e0', color: '#333' },
+  input: { width: '100%', height: 52, backgroundColor: '#f9f5f3', paddingHorizontal: 15, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#e0e0e0', color: '#333', justifyContent: 'center' },
   previewButtonsRow: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginTop: 10 },
-  botonSubir: { flex: 1, flexDirection: 'row', backgroundColor: '#4CAF50', padding: 15, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  textoBotonSubir: { color: '#fff', fontWeight: 'bold', fontSize: 13, textAlign: 'center' },
-  botonCancelar: { padding: 15, borderRadius: 10, borderWidth: 1, borderColor: '#d9534f', justifyContent: 'center', alignItems: 'center', marginLeft: 5 },
+  botonSubir: { flex: 1, flexDirection: 'row', backgroundColor: '#4CAF50', height: 52, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  textoBotonSubir: { color: '#fff', fontWeight: 'bold', fontSize: 15, textAlign: 'center' },
+  botonCancelar: { width: 52, height: 52, borderRadius: 10, borderWidth: 1, borderColor: '#d9534f', justifyContent: 'center', alignItems: 'center' },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 15 },
   carousel: { flexDirection: 'row' },
@@ -255,9 +171,11 @@ const styles = StyleSheet.create({
   imagePlaceholder: { width: 120, height: 160, backgroundColor: '#e0e0e0', borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   outfitDate: { fontSize: 14, color: '#555', fontWeight: '500' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#fff', borderRadius: 15, padding: 20, maxHeight: '80%' },
+  modalContent: { backgroundColor: '#fff', borderRadius: 15, padding: 20, maxHeight: '80%', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5, elevation: 5 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 15, textAlign: 'center' },
   modalOpcion: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  modalOpcionRow: { flexDirection: 'row', paddingVertical: 15, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', justifyContent: 'space-between', alignItems: 'center' },
+  opcionSeleccionada: { backgroundColor: '#f9f5f3', borderRadius: 8 },
   textoOpcion: { fontSize: 16, color: '#333', textAlign: 'center' },
   botonCerrarModal: { marginTop: 15, padding: 15, backgroundColor: '#e6dfd9', borderRadius: 10, alignItems: 'center' },
   textoCerrarModal: { color: '#5c4033', fontWeight: 'bold', fontSize: 16 }
