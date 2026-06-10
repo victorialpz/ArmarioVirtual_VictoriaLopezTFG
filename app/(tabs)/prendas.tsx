@@ -23,7 +23,7 @@ export default function PrendasScreen() {
 
   const { 
     imageUri, setImageUri, estadoCarga, 
-    nombre, setNombre, 
+    descripcion, setDescripcion, // <-- Usamos descripcion
     categoria, setCategoria, 
     color, setColor,
     tipoTela, setTipoTela,
@@ -51,6 +51,40 @@ export default function PrendasScreen() {
       if (data) setPrendas(data);
     } catch (error: any) {
       Alert.alert('Error', 'No pudimos cargar tu armario: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- LÓGICA PARA ELIMINAR PRENDA ---
+  const confirmarEliminacion = (prenda: any) => {
+    Alert.alert(
+      "Eliminar Prenda",
+      "¿Estás segura de que quieres borrar esta prenda? Se eliminará la foto y los datos definitivamente.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Eliminar", style: "destructive", onPress: () => eliminarPrenda(prenda) }
+      ]
+    );
+  };
+
+  const eliminarPrenda = async (prenda: any) => {
+    try {
+      setLoading(true);
+      if (prenda.imagen_url) {
+        const rutaImagen = prenda.imagen_url.split('/prendas/')[1];
+        if (rutaImagen) {
+          await supabase.storage.from('prendas').remove([rutaImagen]);
+        }
+      }
+      const { error } = await supabase.from('prendas').delete().eq('id', prenda.id);
+      if (error) throw error;
+      
+      setModalDetalleVisible(false);
+      setPrendas((prevPrendas) => prevPrendas.filter(p => p.id !== prenda.id));
+      Alert.alert('¡Limpieza!', 'Prenda eliminada correctamente.');
+    } catch (error: any) {
+      Alert.alert('Error', 'No pudimos eliminar la prenda: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -119,8 +153,7 @@ export default function PrendasScreen() {
             <Text style={styles.modalAddTitle}>Nueva prenda:</Text>
             <Image source={{ uri: imageUri || undefined }} style={styles.previewImage} resizeMode="contain" />
             
-            {/* CAMBIADO A DESCRIPCIÓN */}
-            <TextInput style={styles.input} placeholder="Descripción (ej: Camiseta básica lisa)" value={nombre} onChangeText={setNombre} placeholderTextColor="#999" />
+            <TextInput style={styles.input} placeholder="Descripción (ej: Camiseta de Zara, nueva)" value={descripcion} onChangeText={setDescripcion} placeholderTextColor="#999" />
             
             <TouchableOpacity style={styles.input} onPress={() => setModalCategoriaVisible(true)}>
               <Text style={{ color: categoria ? '#333' : '#999', fontSize: 16 }}>{categoria ? categoria : 'Selecciona una categoría...'}</Text>
@@ -225,9 +258,16 @@ export default function PrendasScreen() {
               <Image source={{ uri: prendaSeleccionada.imagen_url }} style={styles.imagenGrande} resizeMode="contain" />
               <View style={styles.infoPanel}>
                 
-                {/* LA PALABRA DESCRIPCIÓN COMO TÍTULO, JUSTO COMO PEDISTE */}
-                <Text style={styles.detalleNombre}>Descripción</Text>
-                <Text style={styles.detalleTextoPrincipal}>{prendaSeleccionada.nombre}</Text>
+                <View style={styles.detalleHeaderRow}>
+                  <Text style={styles.detalleNombre}>{prendaSeleccionada.nombre}</Text>
+                  <TouchableOpacity onPress={() => confirmarEliminacion(prendaSeleccionada)}>
+                    <MaterialCommunityIcons name="trash-can-outline" size={28} color="#d9534f" />
+                  </TouchableOpacity>
+                </View>
+
+                {prendaSeleccionada.descripcion ? (
+                   <Text style={styles.detalleTextoPrincipal}>{prendaSeleccionada.descripcion}</Text>
+                ) : null}
                 
                 <View style={styles.divisor} />
                 <View style={styles.detalleFila}>
@@ -301,8 +341,9 @@ const styles = StyleSheet.create({
   botonCerrarDetalle: { position: 'absolute', top: 50, right: 20, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, padding: 5 },
   imagenGrande: { width: width, height: width * 1.3 },
   infoPanel: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 30, elevation: 10 },
-  detalleNombre: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 5 },
-  detalleTextoPrincipal: { fontSize: 16, color: '#555', marginBottom: 20 }, // <-- Añadido estilo para la descripción
+  detalleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
+  detalleNombre: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+  detalleTextoPrincipal: { fontSize: 16, color: '#555', marginBottom: 20 }, 
   divisor: { height: 1, backgroundColor: '#eee', marginBottom: 20 },
   detalleFila: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   detalleTexto: { fontSize: 16, color: '#555', marginLeft: 10 },

@@ -12,7 +12,7 @@ export default function HomeScreen() {
 
   const { 
     imageUri, setImageUri, estadoCarga, 
-    nombre, setNombre, 
+    descripcion, setDescripcion, // <-- Usamos descripcion
     categoria, setCategoria, 
     color, setColor,
     tipoTela, setTipoTela,
@@ -50,8 +50,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Nueva prenda:</Text>
           <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="contain" />
           
-          {/* CAMBIADO A DESCRIPCIÓN */}
-          <TextInput style={styles.input} placeholder="Descripción (ej: Camiseta básica lisa)" value={nombre} onChangeText={setNombre} placeholderTextColor="#999" />
+          <TextInput style={styles.input} placeholder="Descripción (ej: Camiseta de Zara, nueva)" value={descripcion} onChangeText={setDescripcion} placeholderTextColor="#999" />
           
           <TouchableOpacity style={styles.input} onPress={() => setModalCategoriaVisible(true)}>
             <Text style={{ color: categoria ? '#333' : '#999', fontSize: 16 }}>{categoria ? categoria : 'Selecciona una categoría...'}</Text>

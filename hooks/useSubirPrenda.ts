@@ -11,8 +11,8 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [estadoCarga, setEstadoCarga] = useState('');
   
-  // Usaremos "nombre" en la base de datos, pero en la app lo llamaremos "Descripción"
-  const [nombre, setNombre] = useState('');
+  // NUEVO: Añadimos descripción opcional
+  const [descripcion, setDescripcion] = useState('');
   const [categoria, setCategoria] = useState('');
   const [color, setColor] = useState('');
   const [tipoTela, setTipoTela] = useState('');
@@ -30,8 +30,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
 
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [3, 4],
+      allowsEditing: false, // <-- MEJORA 3: Desactivamos el recorte forzado 1:1. Formato libre.
       quality: 0.8,
     });
 
@@ -55,8 +54,8 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   const subirPrenda = async () => {
     if (!imageUri) return;
     
-    if (!nombre || !categoria || !color || !tipoTela || estilos.length === 0) {
-      Alert.alert("Faltan datos", "Por favor, rellena todos los campos (elige al menos 1 estilo).");
+    if (!categoria || !color || !tipoTela || estilos.length === 0) {
+      Alert.alert("Faltan datos", "Por favor, rellena los campos obligatorios (la descripción es opcional).");
       return;
     }
 
@@ -64,7 +63,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Debes iniciar sesión.");
 
-      setEstadoCarga('Procesando con la IA... 🧠');
+      setEstadoCarga('Procesando imagen');
 
       const formData = new FormData();
       formData.append('file', { uri: imageUri, name: 'prenda.jpg', type: 'image/jpeg' } as any);
@@ -75,7 +74,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
         headers: { 'Bypass-Tunnel-Reminder': 'true' }
       });
 
-      if (!apiResponse.ok) throw new Error("Fallo al conectar.");
+      if (!apiResponse.ok) throw new Error("Fallo al conectar con la IA.");
 
       const bufferImagen = await apiResponse.arrayBuffer();
 
@@ -92,26 +91,31 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
       const publicUrl = urlResponse.data?.publicUrl || (urlResponse as any).publicURL;
 
       const estilosString = estilos.join(', ');
+      
+      // MEJORA 2: Nombre autogenerado para mantener el orden, y la descripción libre va aparte
+      const nombreGenerado = `${categoria} ${color}`;
 
       const { error: dbError } = await supabase.from('prendas').insert({
         id_usuario: user.id, 
-        nombre: nombre, // Guardamos la descripción aquí
+        nombre: nombreGenerado, 
+        descripcion: descripcion, // Guardamos la descripción libre
         categoria: categoria, 
         color: color, 
         tipo_tela: tipoTela, 
-        estilo: estilosString, 
+        estilo: estilos, // <-- ¡CORRECCIÓN CRUCIAL! Pasamos el Array directamente a Supabase
         imagen_url: publicUrl,
       });
 
       if (dbError) throw dbError;
 
-      Alert.alert('¡Magia propia!', 'La IA ha procesado la imagen y se ha guardado.');
+      Alert.alert('¡Magia propia!', 'La prenda se ha guardado correctamente.');
       
-      setImageUri(null); setNombre(''); setCategoria(''); setColor(''); setTipoTela(''); setEstilos([]);
+      // Limpieza
+      setImageUri(null); setDescripcion(''); setCategoria(''); setColor(''); setTipoTela(''); setEstilos([]);
       if (onSuccess) onSuccess();
 
     } catch (error: any) {
-      Alert.alert('Error de Conexión', 'No se pudo conectar con el servidor de la IA.');
+      Alert.alert('Error', 'El servidor de la IA está apagado o la URL ha caducado.');
     } finally {
       setEstadoCarga('');
     }
@@ -119,7 +123,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
 
   return {
     imageUri, setImageUri, estadoCarga, 
-    nombre, setNombre, 
+    descripcion, setDescripcion, // Exportamos la descripción
     categoria, setCategoria, 
     color, setColor,
     tipoTela, setTipoTela,
