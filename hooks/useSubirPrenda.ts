@@ -5,7 +5,7 @@ import { logger } from '../lib/logger';
 import { supabase } from '../lib/supabase';
 
 // ⚠️ RECUERDA: Cambia esta URL cuando reinicies Colab
-const MI_API_URL = "https://lucky-spies-win.loca.lt/quitar-fondo";
+const MI_API_URL = "https://eleven-worlds-open.loca.lt/quitar-fondo";
 
 export const useSubirPrenda = (onSuccess?: () => void) => {
   const [imageUri, setImageUri] = useState<string | null>(null);
