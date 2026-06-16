@@ -22,6 +22,7 @@ export default function LavadoScreen() {
       <Text style={styles.tejidoColada}>{item.tejido}</Text>
     </View>
   );
+  
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>

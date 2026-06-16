@@ -1,20 +1,20 @@
 import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router'; // Importante para redireccionar al login
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 
 import { logger } from '@/lib/logger';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function PerfilScreen() {
@@ -30,7 +30,9 @@ export default function PerfilScreen() {
     apellidos: '',
     sexo: '',
     edad: '',
-    altura: ''
+    altura: '',
+    marca_lavadora: '', // Añadido
+    modelo_lavadora: '' // Añadido
   });
 
   useEffect(() => {
@@ -63,7 +65,9 @@ export default function PerfilScreen() {
             apellidos: data.apellidos || '',
             sexo: data.sexo || '',
             edad: data.edad ? data.edad.toString() : '',
-            altura: data.altura ? data.altura.toString() : ''
+            altura: data.altura ? data.altura.toString() : '',
+            marca_lavadora: data.marca_lavadora || '',
+            modelo_lavadora: data.modelo_lavadora || ''
           });
         }
       }
@@ -96,6 +100,8 @@ export default function PerfilScreen() {
             sexo: formData.sexo,
             edad: formData.edad ? parseInt(formData.edad) : null,
             altura: formData.altura ? parseFloat(formData.altura) : null,
+            marca_lavadora: formData.marca_lavadora,
+            modelo_lavadora: formData.modelo_lavadora
           })
           .eq('id', user.id);
 
@@ -145,7 +151,6 @@ export default function PerfilScreen() {
   }
 
   return (
-    // KeyboardAvoidingView ajusta la vista cuando aparece el teclado
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
       style={{ flex: 1 }}
@@ -202,6 +207,28 @@ export default function PerfilScreen() {
             <View style={[styles.inputGroup, { flex: 0.8 }]}>
               <MaterialCommunityIcons name="human-male-height" size={20} color="#666" style={styles.icon} />
               <TextInput style={styles.input} placeholder="cm" keyboardType="numeric" value={formData.altura} onChangeText={(text) => handleChange('altura', text)} />
+            </View>
+          </View>
+
+          {/* --- SECCIÓN LAVADORA --- */}
+          <Text style={[styles.subtitulo, { alignSelf: 'flex-start', marginTop: 15, marginBottom: 10, fontWeight: 'bold' }]}>Mi Lavadora</Text>
+          <View style={styles.row}>
+            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+              <MaterialCommunityIcons name="washing-machine" size={20} color="#666" style={styles.icon} />
+              <TextInput 
+                style={styles.input} 
+                placeholder="Marca (Ej: Bosch)" 
+                value={formData.marca_lavadora} 
+                onChangeText={(text) => handleChange('marca_lavadora', text)} 
+              />
+            </View>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Modelo (Ej: Serie 6)" 
+                value={formData.modelo_lavadora} 
+                onChangeText={(text) => handleChange('modelo_lavadora', text)} 
+              />
             </View>
           </View>
         </View>
