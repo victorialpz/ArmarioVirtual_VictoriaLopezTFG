@@ -1,10 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
-import { CATEGORIAS_FILTRO, COLORES_COMUNES, ESTILOS_COMUNES, OPCIONES_CATEGORIA, TIPOS_TELA } from '../../constants/opciones';
+// ¡Importaciones completas y corregidas!
+import { CATEGORIAS_FILTRO, COLORES_COMUNES, ESTILOS_COMUNES, MAPA_COLORES, OPCIONES_CATEGORIA, TIPOS_TELA } from '../../constants/opciones';
 import { useSubirPrenda } from '../../hooks/useSubirPrenda';
 
 const { width } = Dimensions.get('window');
@@ -23,9 +24,9 @@ export default function PrendasScreen() {
 
   const { 
     imageUri, setImageUri, estadoCarga, 
-    descripcion, setDescripcion, // <-- Usamos descripcion
+    descripcion, setDescripcion, 
     categoria, setCategoria, 
-    color, setColor,
+    colores, setColores, toggleColor, 
     tipoTela, setTipoTela,
     estilos, toggleEstilo,
     modalVisible: modalCategoriaVisible, setModalVisible: setModalCategoriaVisible, 
@@ -153,14 +154,16 @@ export default function PrendasScreen() {
             <Text style={styles.modalAddTitle}>Nueva prenda:</Text>
             <Image source={{ uri: imageUri || undefined }} style={styles.previewImage} resizeMode="contain" />
             
-            <TextInput style={styles.input} placeholder="Descripción (ej: Camiseta de Zara, nueva)" value={descripcion} onChangeText={setDescripcion} placeholderTextColor="#999" />
+            <Text style={[styles.modalAddTitle, { fontSize: 16, marginTop: 10, marginBottom: 10 }]}>Descripción de la prenda</Text>
             
             <TouchableOpacity style={styles.input} onPress={() => setModalCategoriaVisible(true)}>
               <Text style={{ color: categoria ? '#333' : '#999', fontSize: 16 }}>{categoria ? categoria : 'Selecciona una categoría...'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.input} onPress={() => setModalColorVisible(true)}>
-              <Text style={{ color: color ? '#333' : '#999', fontSize: 16 }}>{color ? color : 'Selecciona un color...'}</Text>
+              <Text style={{ color: colores.length > 0 ? '#333' : '#999', fontSize: 16 }}>
+                {colores.length > 0 ? `Colores: ${colores.join(', ')}` : 'Selecciona colores...'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.input} onPress={() => setModalTelaVisible(true)}>
@@ -169,7 +172,7 @@ export default function PrendasScreen() {
 
             <TouchableOpacity style={styles.input} onPress={() => setModalEstiloVisible(true)}>
               <Text style={{ color: estilos.length > 0 ? '#333' : '#999', fontSize: 16 }}>
-                {estilos.length > 0 ? `Estilo: ${estilos.join(', ')}` : 'Selecciona estilo (máx 2)...'}
+                {estilos.length > 0 ? `Estilos: ${estilos.join(', ')}` : 'Selecciona estilo (máx 3)...'}
               </Text>
             </TouchableOpacity>
             
@@ -195,6 +198,44 @@ export default function PrendasScreen() {
           </ScrollView>
 
           {/* Modales Internos */}
+          <Modal visible={modalColorVisible} animationType="fade" transparent={true}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Elige los colores</Text>
+                <Text style={{ textAlign: 'center', color: '#999', marginBottom: 10, fontStyle: 'italic' }}>
+                  ↓ Desliza para ver más ↓
+                </Text>
+                
+                <FlatList 
+                  data={COLORES_COMUNES} 
+                  keyExtractor={(item) => item} 
+                  showsVerticalScrollIndicator={true}
+                  indicatorStyle="black"
+                  renderItem={({ item }) => {
+                    const seleccionado = colores.includes(item);
+                    return (
+                      <TouchableOpacity 
+                        style={[styles.modalOpcionRow, seleccionado && styles.opcionSeleccionada]} 
+                        onPress={() => toggleColor(item)}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <View style={[styles.colorBox, { backgroundColor: MAPA_COLORES[item] || '#ccc' }]} />
+                          <Text style={[styles.textoOpcion, seleccionado && { fontWeight: 'bold', color: '#5c4033' }]}>
+                            {item}
+                          </Text>
+                        </View>
+                        {seleccionado && <MaterialCommunityIcons name="check" size={20} color="#5c4033" />}
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+                <TouchableOpacity style={[styles.botonCerrarModal, { backgroundColor: '#5c4033' }]} onPress={() => setModalColorVisible(false)}>
+                  <Text style={[styles.textoCerrarModal, { color: '#fff' }]}>Aceptar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
           <Modal visible={modalCategoriaVisible} animationType="fade" transparent={true}>
             <View style={styles.modalOverlay}><View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Elige la categoría</Text>
@@ -202,16 +243,6 @@ export default function PrendasScreen() {
                 <TouchableOpacity style={styles.modalOpcion} onPress={() => { setCategoria(item); setModalCategoriaVisible(false); }}><Text style={styles.textoOpcion}>{item}</Text></TouchableOpacity>
               )}/>
               <TouchableOpacity style={styles.botonCerrarModal} onPress={() => setModalCategoriaVisible(false)}><Text style={styles.textoCerrarModal}>Cancelar</Text></TouchableOpacity>
-            </View></View>
-          </Modal>
-
-          <Modal visible={modalColorVisible} animationType="fade" transparent={true}>
-            <View style={styles.modalOverlay}><View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Elige el color</Text>
-              <FlatList data={COLORES_COMUNES} keyExtractor={(item) => item} renderItem={({ item }) => (
-                <TouchableOpacity style={styles.modalOpcion} onPress={() => { setColor(item); setModalColorVisible(false); }}><Text style={styles.textoOpcion}>{item}</Text></TouchableOpacity>
-              )}/>
-              <TouchableOpacity style={styles.botonCerrarModal} onPress={() => setModalColorVisible(false)}><Text style={styles.textoCerrarModal}>Cancelar</Text></TouchableOpacity>
             </View></View>
           </Modal>
 
@@ -227,7 +258,7 @@ export default function PrendasScreen() {
 
           <Modal visible={modalEstiloVisible} animationType="fade" transparent={true}>
             <View style={styles.modalOverlay}><View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Selecciona Estilos (Máx 2)</Text>
+              <Text style={styles.modalTitle}>Selecciona Estilos (Máx 3)</Text>
               <FlatList data={ESTILOS_COMUNES} keyExtractor={(item) => item} renderItem={({ item }) => {
                 const seleccionado = estilos.includes(item);
                 return (
@@ -238,7 +269,7 @@ export default function PrendasScreen() {
                 );
               }}/>
               <TouchableOpacity style={[styles.botonCerrarModal, { backgroundColor: '#5c4033' }]} onPress={() => setModalEstiloVisible(false)}>
-                <Text style={[styles.textoCerrarModal, { color: '#fff' }]}>Aceptar ({estilos.length}/2)</Text>
+                <Text style={[styles.textoCerrarModal, { color: '#fff' }]}>Aceptar ({estilos.length}/3)</Text>
               </TouchableOpacity>
             </View></View>
           </Modal>
@@ -328,8 +359,11 @@ const styles = StyleSheet.create({
   botonSubir: { flex: 1, flexDirection: 'row', backgroundColor: '#4CAF50', height: 52, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   textoBotonSubir: { color: '#fff', fontWeight: 'bold', fontSize: 15, textAlign: 'center' },
   botonCancelar: { width: 52, height: 52, borderRadius: 10, borderWidth: 1, borderColor: '#d9534f', justifyContent: 'center', alignItems: 'center' },
+  
+  /* ESTILOS DE MODALES CORREGIDOS Y ORDENADOS */
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalContent: { backgroundColor: '#fff', borderRadius: 15, padding: 20, maxHeight: '80%', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5, elevation: 5 },
+  colorBox: { width: 24, height: 24, borderRadius: 12, marginRight: 15, borderWidth: 1, borderColor: '#ddd' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 15, textAlign: 'center' },
   modalOpcion: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   modalOpcionRow: { flexDirection: 'row', paddingVertical: 15, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', justifyContent: 'space-between', alignItems: 'center' },
@@ -337,6 +371,7 @@ const styles = StyleSheet.create({
   textoOpcion: { fontSize: 16, color: '#333', textAlign: 'center' },
   botonCerrarModal: { marginTop: 15, padding: 15, backgroundColor: '#e6dfd9', borderRadius: 10, alignItems: 'center' },
   textoCerrarModal: { color: '#5c4033', fontWeight: 'bold', fontSize: 16 },
+  
   modalContainer: { flex: 1, backgroundColor: '#000', justifyContent: 'center' },
   botonCerrarDetalle: { position: 'absolute', top: 50, right: 20, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, padding: 5 },
   imagenGrande: { width: width, height: width * 1.3 },
