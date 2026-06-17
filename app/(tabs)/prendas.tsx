@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
 // ¡Importaciones completas y corregidas!
@@ -22,18 +22,19 @@ export default function PrendasScreen() {
   const [modalTelaVisible, setModalTelaVisible] = useState(false);
   const [modalEstiloVisible, setModalEstiloVisible] = useState(false);
 
-  const { 
-    imageUri, setImageUri, estadoCarga, 
-    descripcion, setDescripcion, 
-    categoria, setCategoria, 
-    colores, setColores, toggleColor, 
-    tipoTela, setTipoTela,
+  const {
+    imageUri, setImageUri, estadoCarga,
+    categoria, setCategoria,
+    colores, toggleColor,
+    tipoTela, cambiarTipoTela, telaAutoDetectada,
     estilos, toggleEstilo,
-    modalVisible: modalCategoriaVisible, setModalVisible: setModalCategoriaVisible, 
-    pickImage, subirPrenda 
-  } = useSubirPrenda(() => {
-    cargarPrendas();
-  });
+    modalVisible: modalCategoriaVisible, setModalVisible: setModalCategoriaVisible,
+    // etiqueta OCR
+    labelImageUri, etiquetaOcr, setEtiquetaOcr, loadingOcr, pickLabelImage,
+    // tags
+    tags, tagInput, setTagInput, addTag, removeTag,
+    pickImage, subirPrenda,
+  } = useSubirPrenda(() => cargarPrendas());
 
   useFocusEffect(
     useCallback(() => { cargarPrendas(); }, [])
@@ -148,8 +149,15 @@ export default function PrendasScreen() {
 
       {/* --- MODAL PANTALLA COMPLETA DE SUBIDA --- */}
       <Modal visible={!!imageUri} animationType="slide" transparent={false}>
-        <View style={styles.modalAddContainer}>
-          <ScrollView contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalAddContainer}
+        >
+          <ScrollView
+            contentContainerStyle={styles.modalScrollContent}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+          >
             
             <Text style={styles.modalAddTitle}>Nueva prenda:</Text>
             <Image source={{ uri: imageUri || undefined }} style={styles.previewImage} resizeMode="contain" />
@@ -167,7 +175,16 @@ export default function PrendasScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.input} onPress={() => setModalTelaVisible(true)}>
-              <Text style={{ color: tipoTela ? '#333' : '#999', fontSize: 16 }}>{tipoTela ? tipoTela : 'Selecciona el tipo de tela...'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ color: tipoTela ? '#333' : '#999', fontSize: 16 }}>
+                  {tipoTela ? tipoTela : 'Selecciona el tipo de tela...'}
+                </Text>
+                {telaAutoDetectada && (
+                  <View style={styles.badgeAutoDetectado}>
+                    <Text style={styles.badgeAutoDetectadoTexto}>Auto</Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.input} onPress={() => setModalEstiloVisible(true)}>
@@ -175,7 +192,54 @@ export default function PrendasScreen() {
                 {estilos.length > 0 ? `Estilos: ${estilos.join(', ')}` : 'Selecciona estilo (máx 3)...'}
               </Text>
             </TouchableOpacity>
-            
+
+            {/* ── ETIQUETA FÍSICA (OCR) ─────────────────────────────── */}
+            <Text style={styles.seccionTitulo}>Etiqueta física de la prenda</Text>
+            <TouchableOpacity
+              style={styles.botonEtiqueta}
+              onPress={pickLabelImage}
+              disabled={loadingOcr}
+            >
+              {loadingOcr ? (
+                <>
+                  <ActivityIndicator size="small" color="#5c4033" />
+                  <Text style={styles.botonEtiquetaTexto}>  Leyendo etiqueta...</Text>
+                </>
+              ) : (
+                <>
+                  <MaterialCommunityIcons
+                    name={labelImageUri ? 'tag-check' : 'tag-plus-outline'}
+                    size={20} color="#5c4033"
+                  />
+                  <Text style={styles.botonEtiquetaTexto}>
+                    {labelImageUri ? '  Etiqueta escaneada ✓' : '  Escanear etiqueta física'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+            {etiquetaOcr !== '' && (
+              <TextInput
+                style={styles.inputOcr}
+                value={etiquetaOcr}
+                onChangeText={setEtiquetaOcr}
+                multiline
+                placeholder="Texto detectado en la etiqueta..."
+                placeholderTextColor="#999"
+              />
+            )}
+
+            {/* ── TAGS DE ORGANIZACIÓN ──────────────────────────────── */}
+            {tags.length > 0 && (
+              <View style={styles.tagsWrap}>
+                {tags.map(tag => (
+                  <TouchableOpacity key={tag} style={styles.tagChip} onPress={() => removeTag(tag)}>
+                    <Text style={styles.tagChipTexto}>#{tag}</Text>
+                    <MaterialCommunityIcons name="close" size={13} color="#5c4033" style={{ marginLeft: 4 }} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             <View style={styles.previewButtonsRow}>
               <TouchableOpacity style={[styles.botonSubir, estadoCarga !== '' && { backgroundColor: '#a5d6a7' }]} onPress={subirPrenda} disabled={estadoCarga !== ''}>
                 {estadoCarga !== '' ? (
@@ -250,7 +314,7 @@ export default function PrendasScreen() {
             <View style={styles.modalOverlay}><View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Elige el tipo de tela</Text>
               <FlatList data={TIPOS_TELA} keyExtractor={(item) => item} renderItem={({ item }) => (
-                <TouchableOpacity style={styles.modalOpcion} onPress={() => { setTipoTela(item); setModalTelaVisible(false); }}><Text style={styles.textoOpcion}>{item}</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.modalOpcion} onPress={() => { cambiarTipoTela(item); setModalTelaVisible(false); }}><Text style={styles.textoOpcion}>{item}</Text></TouchableOpacity>
               )}/>
               <TouchableOpacity style={styles.botonCerrarModal} onPress={() => setModalTelaVisible(false)}><Text style={styles.textoCerrarModal}>Cancelar</Text></TouchableOpacity>
             </View></View>
@@ -274,7 +338,7 @@ export default function PrendasScreen() {
             </View></View>
           </Modal>
 
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* --- MODAL DE DETALLE (PRENDA EN GRANDE) --- */}
@@ -343,7 +407,7 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   gridPrendas: { padding: 10, paddingBottom: 100 },
   cardPrenda: { flex: 1, margin: 8, backgroundColor: '#fff', borderRadius: 12, padding: 10, alignItems: 'center', elevation: 2 },
-  imagenPrendaContenedor: { width: '100%', height: 120, backgroundColor: '#f9f5f3', borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  imagenPrendaContenedor: { width: '100%', height: 120, backgroundColor: '#fff', borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   imagenMiniatura: { width: '100%', height: '100%', borderRadius: 8 },
   iconoFavorito: { position: 'absolute', top: 4, left: 4, zIndex: 1 },
   nombrePrenda: { fontSize: 14, color: '#333', fontWeight: '600' },
@@ -351,7 +415,7 @@ const styles = StyleSheet.create({
   textoVacio: { marginTop: 10, color: '#888' },
   fab: { position: 'absolute', bottom: 20, right: 20, backgroundColor: '#5c4033', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5 },
   modalAddContainer: { flex: 1, backgroundColor: '#fff', padding: 20, paddingTop: 60 },
-  modalScrollContent: { alignItems: 'center', paddingBottom: 30 },
+  modalScrollContent: { alignItems: 'center', paddingBottom: 80 },
   modalAddTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 20, alignSelf: 'flex-start' },
   previewImage: { width: 200, height: 266, borderRadius: 10, marginBottom: 25, backgroundColor: '#f9f5f3' },
   input: { width: '100%', height: 52, backgroundColor: '#f9f5f3', paddingHorizontal: 15, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: '#e0e0e0', color: '#333', fontSize: 16, justifyContent: 'center' },
@@ -378,9 +442,22 @@ const styles = StyleSheet.create({
   infoPanel: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 30, elevation: 10 },
   detalleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
   detalleNombre: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-  detalleTextoPrincipal: { fontSize: 16, color: '#555', marginBottom: 20 }, 
+  detalleTextoPrincipal: { fontSize: 16, color: '#555', marginBottom: 20 },
   divisor: { height: 1, backgroundColor: '#eee', marginBottom: 20 },
   detalleFila: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   detalleTexto: { fontSize: 16, color: '#555', marginLeft: 10 },
-  bold: { fontWeight: 'bold', color: '#333' }
+  bold: { fontWeight: 'bold', color: '#333' },
+  // ── Etiqueta física + Tags ────────────────────────────────────────
+  seccionTitulo: { fontSize: 16, fontWeight: 'bold', color: '#333', marginTop: 18, marginBottom: 8, alignSelf: 'flex-start' },
+  botonEtiqueta: { flexDirection: 'row', alignItems: 'center', width: '100%', padding: 14, borderRadius: 10, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#5c4033', marginBottom: 10 },
+  botonEtiquetaTexto: { color: '#5c4033', fontWeight: '600', fontSize: 15 },
+  inputOcr: { width: '100%', backgroundColor: '#f9f5f3', borderRadius: 10, padding: 12, marginBottom: 10, fontSize: 13, color: '#333', borderWidth: 1, borderColor: '#e0e0e0', minHeight: 80, textAlignVertical: 'top' },
+  tagInputRow: { flexDirection: 'row', width: '100%', marginBottom: 10 },
+  tagInput: { flex: 1, height: 46, backgroundColor: '#f9f5f3', borderRadius: 10, paddingHorizontal: 14, fontSize: 15, color: '#333', borderWidth: 1, borderColor: '#e0e0e0' },
+  tagAddBtn: { width: 46, height: 46, backgroundColor: '#5c4033', borderRadius: 10, marginLeft: 8, justifyContent: 'center', alignItems: 'center' },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10, width: '100%' },
+  tagChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0eade', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: '#d4c5b5' },
+  tagChipTexto: { color: '#5c4033', fontWeight: '600', fontSize: 13 },
+  badgeAutoDetectado: { backgroundColor: '#4CAF50', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  badgeAutoDetectadoTexto: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
 });

@@ -13,7 +13,17 @@ export default function OutfitScreen() {
     
     // Estados del Generador IA
     const [eventoActivo, setEventoActivo] = useState<string>('Diario');
-    const { loading, climaActual, outfitGenerado, generarOutfit, guardarOutfit } = useGeneradorOutfits();
+    const { loading, climaActual, outfitGenerado, generarOutfit, guardarOutfit, calcularClimaDesdeTemp } = useGeneradorOutfits();
+    const [modoTemp, setModoTemp] = useState<'gps' | 'manual'>('gps');
+    const [tempManual, setTempManual] = useState(20);
+
+    const handleGenerar = () => {
+        if (modoTemp === 'manual') {
+            generarOutfit(calcularClimaDesdeTemp(tempManual));
+        } else {
+            generarOutfit();
+        }
+    };
 
     // Estados de la Galería de Guardados
     const [outfitsGuardados, setOutfitsGuardados] = useState<any[]>([]);
@@ -150,6 +160,38 @@ export default function OutfitScreen() {
                         </View>
                     ) : null}
 
+                    {/* SELECTOR DE TEMPERATURA */}
+                    <View style={styles.sectionFiltro}>
+                        <Text style={styles.tituloSeccion}>Temperatura</Text>
+                        <View style={styles.modoTempRow}>
+                            <TouchableOpacity
+                                style={[styles.modoTempBtn, modoTemp === 'gps' && styles.modoTempBtnActivo]}
+                                onPress={() => setModoTemp('gps')}
+                            >
+                                <MaterialCommunityIcons name="map-marker" size={15} color={modoTemp === 'gps' ? '#fff' : '#666'} />
+                                <Text style={[styles.modoTempTexto, modoTemp === 'gps' && styles.modoTempTextoActivo]}>  GPS actual</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modoTempBtn, modoTemp === 'manual' && styles.modoTempBtnActivo]}
+                                onPress={() => setModoTemp('manual')}
+                            >
+                                <MaterialCommunityIcons name="thermometer" size={15} color={modoTemp === 'manual' ? '#fff' : '#666'} />
+                                <Text style={[styles.modoTempTexto, modoTemp === 'manual' && styles.modoTempTextoActivo]}>  Introducir a mano</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {modoTemp === 'manual' && (
+                            <View style={styles.tempManualRow}>
+                                <TouchableOpacity style={styles.tempBtn} onPress={() => setTempManual(t => Math.max(-10, t - 1))}>
+                                    <Text style={styles.tempBtnTexto}>−</Text>
+                                </TouchableOpacity>
+                                <Text style={styles.tempValor}>{tempManual}°C</Text>
+                                <TouchableOpacity style={styles.tempBtn} onPress={() => setTempManual(t => Math.min(45, t + 1))}>
+                                    <Text style={styles.tempBtnTexto}>+</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+
                     <View style={styles.sectionFiltro}>
                         <Text style={styles.tituloSeccion}>¿A dónde vas hoy?</Text>
                         <FlatList
@@ -214,7 +256,7 @@ export default function OutfitScreen() {
                     </View>
 
                     <View style={styles.accionesContainer}>
-                        <TouchableOpacity style={styles.botonPrincipal} onPress={() => generarOutfit(eventoActivo)} disabled={loading}>
+                        <TouchableOpacity style={styles.botonPrincipal} onPress={handleGenerar} disabled={loading}>
                             <MaterialCommunityIcons name="magic-staff" size={24} color="#fff" style={styles.iconoBoton} />
                             <Text style={styles.textoBotonPrincipal}>Generar con IA</Text>
                         </TouchableOpacity>
@@ -284,7 +326,7 @@ const styles = StyleSheet.create({
     outfitCard: { backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 20, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 4 },
     ropaContainer: { width: '100%', flexDirection: 'row', justifyContent: 'space-between' },
     columnaGrid: { width: '48%', flexDirection: 'column' },
-    prendaBox: { backgroundColor: '#f9f5f3', borderRadius: 15, padding: 10, marginBottom: 15, alignItems: 'center', height: 220, borderWidth: 1, borderColor: '#f0eade' },
+    prendaBox: { backgroundColor: '#fff', borderRadius: 15, padding: 10, marginBottom: 15, alignItems: 'center', height: 220, borderWidth: 1, borderColor: '#f0eade' },
     vestidoBox: { height: 455 },
     prendaLabel: { fontSize: 12, fontWeight: 'bold', color: '#8b5a2b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
     prendaImagen: { width: '100%', height: '85%' },
@@ -306,6 +348,16 @@ const styles = StyleSheet.create({
     tagLook: { backgroundColor: '#e6dfd9', color: '#5c4033', fontSize: 12, fontWeight: 'bold', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginRight: 8, overflow: 'hidden' },
     botonBorrar: { padding: 5, backgroundColor: '#fcebea', borderRadius: 10 },
     miniMoodboard: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' },
-    miniPrendaBox: { width: '47%', height: 120, backgroundColor: '#f9f5f3', borderRadius: 12, padding: 5, borderWidth: 1, borderColor: '#eee' },
-    miniImagen: { width: '100%', height: '100%' }
+    miniPrendaBox: { width: '47%', height: 120, backgroundColor: '#fff', borderRadius: 12, padding: 5, borderWidth: 1, borderColor: '#eee' },
+    miniImagen: { width: '100%', height: '100%' },
+    // Temperatura manual
+    modoTempRow: { flexDirection: 'row', gap: 10, marginTop: 5 },
+    modoTempBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: '#e0e0e0' },
+    modoTempBtnActivo: { backgroundColor: '#5c4033' },
+    modoTempTexto: { fontSize: 13, fontWeight: '600', color: '#666' },
+    modoTempTextoActivo: { color: '#fff' },
+    tempManualRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 14, gap: 20 },
+    tempBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#5c4033', justifyContent: 'center', alignItems: 'center' },
+    tempBtnTexto: { color: '#fff', fontSize: 22, fontWeight: 'bold', lineHeight: 26 },
+    tempValor: { fontSize: 32, fontWeight: 'bold', color: '#333', minWidth: 80, textAlign: 'center' }
 });

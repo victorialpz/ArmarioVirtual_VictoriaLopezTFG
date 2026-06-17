@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+Pillow
+rembg[gpu]
+easyocr
+numpy

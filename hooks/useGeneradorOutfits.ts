@@ -45,8 +45,16 @@ export const useGeneradorOutfits = () => {
     }
   };
 
+  const calcularClimaDesdeTemp = (temp: number) => {
+    const tipo = temp < 15 ? 'Frío' : temp > 25 ? 'Calor' : 'Entretiempo';
+    const descripcion = temp < 15 ? 'frío' : temp > 25 ? 'caluroso' : 'templado';
+    const clima = { temp, descripcion, tipo };
+    setClimaActual(clima);
+    return clima;
+  };
+
   // 2. EL MOTOR DE REGLAS (GENERAR OUTFIT)
-  const generarOutfit = async (estiloEvento: string) => {
+  const generarOutfit = async (climaForzado?: { temp: number; descripcion: string; tipo: string }) => {
     setLoading(true);
     setOutfitGenerado(null);
 
@@ -54,7 +62,7 @@ export const useGeneradorOutfits = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Debes iniciar sesión.");
 
-      const clima = await obtenerClima();
+      const clima = climaForzado ?? await obtenerClima();
       if (!clima) throw new Error("No hay datos del clima.");
 
       const { data: ropa, error } = await supabase
@@ -68,45 +76,32 @@ export const useGeneradorOutfits = () => {
         return;
       }
 
-      // --- PASO 1: Filtrar por el estilo que ha pedido el usuario ---
-      let ropaFiltrada = ropa.filter(prenda => 
-        prenda.estilo && prenda.estilo.includes(estiloEvento)
+      // Usamos todo el armario como pool — el evento se usa solo para nombrar el outfit
+      const partesSuperiores = ropa.filter(p =>
+        p.categoria.includes('Top') || p.categoria.includes('Camisa') ||
+        p.categoria.includes('Camiseta') || p.categoria.includes('Blusa')
       );
+      const partesInferiores = ropa.filter(p =>
+        p.categoria.includes('Pantalón') || p.categoria.includes('Falda') ||
+        p.categoria.includes('Vaquero')
+      );
+      const vestidos = ropa.filter(p => p.categoria.includes('Vestido'));
 
-      // --- PASO 2: Comprobar si con esa ropa podemos montar un conjunto ---
-      let partesSuperiores = ropaFiltrada.filter(p => p.categoria.includes('Top') || p.categoria.includes('Camisa') || p.categoria.includes('Camiseta') || p.categoria.includes('Blusa'));
-      let partesInferiores = ropaFiltrada.filter(p => p.categoria.includes('Pantalón') || p.categoria.includes('Falda') || p.categoria.includes('Vaquero'));
-      let vestidos = ropaFiltrada.filter(p => p.categoria.includes('Vestido'));
-      
-      let puedeUsarVestido = vestidos.length > 0;
-      let puedeUsarConjunto = partesSuperiores.length > 0 && partesInferiores.length > 0;
+      const puedeUsarVestido = vestidos.length > 0;
+      const puedeUsarConjunto = partesSuperiores.length > 0 && partesInferiores.length > 0;
 
-      // --- MEJORA DEFINITIVA: EL FALLBACK INTELIGENTE ---
-      // Si la IA encontró algo de ese estilo pero se quedó "a medias" (ej: falta el pantalón)
       if (!puedeUsarVestido && !puedeUsarConjunto) {
-         Alert.alert("Modo Flexible", `No tienes un conjunto completo del estilo ${estiloEvento}. Combinando con todo tu armario...`);
-         
-         // Deshacemos el filtro y usamos todo el armario
-         ropaFiltrada = ropa; 
-         
-         // Volvemos a buscar Tops y Pantalones en todo el armario
-         partesSuperiores = ropaFiltrada.filter(p => p.categoria.includes('Top') || p.categoria.includes('Camisa') || p.categoria.includes('Camiseta') || p.categoria.includes('Blusa'));
-         partesInferiores = ropaFiltrada.filter(p => p.categoria.includes('Pantalón') || p.categoria.includes('Falda') || p.categoria.includes('Vaquero'));
-         vestidos = ropaFiltrada.filter(p => p.categoria.includes('Vestido'));
-         
-         puedeUsarVestido = vestidos.length > 0;
-         puedeUsarConjunto = partesSuperiores.length > 0 && partesInferiores.length > 0;
+        Alert.alert("Armario incompleto", "Necesitas al menos un Vestido, o una Parte Superior y una Parte Inferior guardadas en la app.");
+        return;
       }
 
-      // Si aún usando TODO el armario seguimos sin poder vestir a la usuaria (falla de verdad)
-      if (!puedeUsarVestido && !puedeUsarConjunto) {
-          Alert.alert("Armario incompleto", "Necesitas al menos un Vestido, o una Parte Superior y una Parte Inferior guardadas en la app.");
-          return;
-      }
-
-      // Categorías adicionales
-      const zapatos = ropaFiltrada.filter(p => p.categoria.includes('Zapato') || p.categoria.includes('Calzado') || p.categoria.includes('Zapatillas'));
-      const prendasAbrigo = ropaFiltrada.filter(p => p.categoria.includes('Abrigo') || p.categoria.includes('Chaqueta') || p.categoria.includes('Jersey') || p.categoria.includes('Sudadera'));
+      const zapatos = ropa.filter(p =>
+        p.categoria.includes('Zapato') || p.categoria.includes('Calzado') || p.categoria.includes('Zapatillas')
+      );
+      const prendasAbrigo = ropa.filter(p =>
+        p.categoria.includes('Abrigo') || p.categoria.includes('Chaqueta') ||
+        p.categoria.includes('Jersey') || p.categoria.includes('Sudadera')
+      );
 
       const elegirAzar = (array: any[]) => array.length > 0 ? array[Math.floor(Math.random() * array.length)] : null;
 
@@ -187,5 +182,5 @@ export const useGeneradorOutfits = () => {
     }
   };
 
-  return { loading, climaActual, outfitGenerado, generarOutfit, obtenerClima, guardarOutfit };
+  return { loading, climaActual, outfitGenerado, generarOutfit, obtenerClima, guardarOutfit, calcularClimaDesdeTemp };
 };
