@@ -71,7 +71,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
 
     try {
       const formData = new FormData();
-      formData.append('file', { uri, name: 'etiqueta.jpg', type: 'image/jpeg' } as any);
+      formData.append('file', { uri, name: `etiqueta_${Date.now()}.jpg`, type: 'image/jpeg' } as any);
 
       const response = await fetch(MI_OCR_URL, { method: 'POST', body: formData });
       if (!response.ok) throw new Error('El servidor no pudo leer la etiqueta.');
@@ -79,8 +79,12 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
       const data = await response.json();
       setEtiquetaOcr(data.ocr_text || '');
 
-      if (data.tipo_tela_sugerido && !tipoTela) {
-        setTipoTela(data.tipo_tela_sugerido);
+      // DEBUG — elimina este Alert cuando funcione correctamente
+      Alert.alert('OCR respuesta', `ocr_text: "${data.ocr_text}"\ntipo_tela_sugerido: "${data.tipo_tela_sugerido}"`);
+
+      const composicionDetectada = (data.ocr_text ?? '').trim() || (data.tipo_tela_sugerido ?? '').trim();
+      if (composicionDetectada) {
+        setTipoTela(composicionDetectada);
         setTelaAutoDetectada(true);
       }
     } catch (error: any) {
@@ -199,6 +203,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
     setEstilos([]);
     setLabelImageUri(null);
     setEtiquetaOcr('');
+    setLoadingOcr(false);
     setTags([]);
     setTagInput('');
   };
@@ -210,7 +215,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
     descripcion, setDescripcion,
     categoria, setCategoria,
     colores, setColores, toggleColor,
-    tipoTela, cambiarTipoTela, telaAutoDetectada,
+    tipoTela, setTipoTela, cambiarTipoTela, telaAutoDetectada,
     estilos, toggleEstilo, setEstilos,
     modalVisible, setModalVisible,
     // etiqueta OCR
@@ -218,6 +223,6 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
     // tags
     tags, tagInput, setTagInput, addTag, removeTag,
     // acciones
-    pickImage, subirPrenda,
+    pickImage, subirPrenda, limpiar: _limpiar,
   };
 };

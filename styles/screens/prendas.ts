@@ -1,0 +1,186 @@
+import { Dimensions, StyleSheet } from 'react-native';
+import { Colors } from '../colors';
+import { commonStyles } from '../common';
+
+const { width } = Dimensions.get('window');
+
+const _screen = StyleSheet.create({
+  container:            { flex: 1, backgroundColor: Colors.background },
+  header: {
+    padding: 20,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    marginTop: 10,
+  },
+  titulo:               { fontSize: 28, fontWeight: 'bold', color: Colors.text, marginBottom: 15 },
+  listaCategorias:      { flexGrow: 0 },
+  gridPrendas:          { padding: 10, paddingBottom: 100 },
+  cardPrenda: {
+    flex: 1,
+    margin: 8,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    elevation: 2,
+  },
+  imagenPrendaContenedor: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  imagenMiniatura:      { width: '100%', height: '100%', borderRadius: 8 },
+  iconoFavorito:        { position: 'absolute', top: 4, left: 4, zIndex: 1 },
+  nombrePrenda:         { fontSize: 14, color: Colors.text, fontWeight: '600' },
+
+  // Modal de subida
+  modalAddContainer:    { flex: 1, backgroundColor: Colors.surface, padding: 20, paddingTop: 60 },
+  modalScrollContent:   { alignItems: 'center', paddingBottom: 80 },
+  modalAddTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 20,
+    alignSelf: 'flex-start',
+  },
+  previewImage:         { width: '80%', borderRadius: 10, marginBottom: 25 },
+  input: {
+    width: '100%',
+    height: 52,
+    backgroundColor: Colors.surfaceAlt,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    color: Colors.text,
+    fontSize: 16,
+    justifyContent: 'center',
+  },
+
+  // Modal de detalle (tamaño real)
+  modalContainer:       { flex: 1, backgroundColor: '#111' },
+  botonCerrarDetalle: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 5,
+  },
+  imagenGrande:         { width, flex: 1 },
+  infoPanel: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 30,
+    elevation: 10,
+  },
+  detalleHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  detalleNombre:          { fontSize: 24, fontWeight: 'bold', color: Colors.text },
+  detalleTextoPrincipal:  { fontSize: 16, color: '#555', marginBottom: 20 },
+  divisor:                { height: 1, backgroundColor: '#eee', marginBottom: 20 },
+  detalleFila:            { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  detalleTexto:           { fontSize: 16, color: '#555', marginLeft: 10 },
+  bold:                   { fontWeight: 'bold', color: Colors.text },
+
+  // OCR
+  botonEtiqueta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: Colors.primary,
+    marginBottom: 10,
+  },
+  botonEtiquetaTexto:       { color: Colors.primary, fontWeight: '600', fontSize: 15 },
+
+  // Tags
+  tagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+    width: '100%',
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surfaceAlt2,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#d4c5b5',
+  },
+  tagChipTexto:             { color: Colors.primary, fontWeight: '600', fontSize: 13 },
+  badgeAutoDetectado: {
+    backgroundColor: Colors.success,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  badgeAutoDetectadoTexto:  { color: Colors.textLight, fontSize: 11, fontWeight: 'bold' },
+
+  // Unused kept for compatibility
+  seccionTitulo: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginTop: 18,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  inputOcr: {
+    width: '100%',
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    fontSize: 13,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  tagInputRow:  { flexDirection: 'row', width: '100%', marginBottom: 10 },
+  tagInput: {
+    flex: 1,
+    height: 46,
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  tagAddBtn: {
+    width: 46,
+    height: 46,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    marginLeft: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
+
+export const styles = { ...commonStyles, ..._screen };

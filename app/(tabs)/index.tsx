@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router'; // <-- Importamos el router para navegar
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { styles } from '@/styles/screens/home';
 
 import { COLORES_COMUNES, ESTILOS_COMUNES, MAPA_COLORES, OPCIONES_CATEGORIA, TIPOS_TELA } from '../../constants/opciones';
 import { useGeneradorOutfits } from '../../hooks/useGeneradorOutfits'; // <-- Importamos el cerebro
@@ -15,15 +16,16 @@ export default function HomeScreen() {
   // 1. Instanciamos el hook del generador para leer el clima
   const { climaActual, obtenerClima } = useGeneradorOutfits();
 
-  const { 
-    imageUri, setImageUri, estadoCarga, 
-    descripcion, setDescripcion, 
-    categoria, setCategoria, 
-    colores, setColores, toggleColor, 
-    tipoTela, setTipoTela,
+  const {
+    imageUri, estadoCarga,
+    descripcion, setDescripcion,
+    categoria, setCategoria,
+    colores, setColores, toggleColor,
+    tipoTela, setTipoTela, telaAutoDetectada,
     estilos, toggleEstilo,
-    modalVisible: modalCategoriaVisible, setModalVisible: setModalCategoriaVisible, 
-    pickImage, subirPrenda 
+    modalVisible: modalCategoriaVisible, setModalVisible: setModalCategoriaVisible,
+    pickImage, subirPrenda, limpiar,
+    pickLabelImage, loadingOcr,
   } = useSubirPrenda();
   // 2. Pedimos el clima en cuanto se abre la pantalla
   useEffect(() => {
@@ -92,9 +94,35 @@ export default function HomeScreen() {
   </Text>
 </TouchableOpacity>
 
-          <TouchableOpacity style={styles.input} onPress={() => setModalTelaVisible(true)}>
-            <Text style={{ color: tipoTela ? '#333' : '#999', fontSize: 16 }}>{tipoTela ? tipoTela : 'Selecciona el tipo de tela...'}</Text>
+          <TouchableOpacity
+            style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0ebe7', borderStyle: 'dashed' }]}
+            onPress={pickLabelImage}
+            disabled={loadingOcr}
+          >
+            {loadingOcr
+              ? <ActivityIndicator size="small" color="#5c4033" style={{ marginRight: 8 }} />
+              : <MaterialCommunityIcons name="barcode-scan" size={20} color="#5c4033" style={{ marginRight: 8 }} />
+            }
+            <Text style={{ color: '#5c4033', fontSize: 15 }}>
+              {loadingOcr ? 'Leyendo etiqueta...' : 'Escanear etiqueta (OCR)'}
+            </Text>
           </TouchableOpacity>
+
+          <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 0 }]}>
+            <TextInput
+              style={{ flex: 1, paddingHorizontal: 15, color: '#333', fontSize: 16 }}
+              placeholder="Composición (ej: 80% Algodón, 20% Elastán)"
+              placeholderTextColor="#999"
+              value={tipoTela}
+              onChangeText={setTipoTela}
+            />
+            {telaAutoDetectada && (
+              <MaterialCommunityIcons name="robot-outline" size={18} color="#5c4033" style={{ marginRight: 4 }} />
+            )}
+            <TouchableOpacity onPress={() => setModalTelaVisible(true)} style={{ paddingHorizontal: 12 }}>
+              <MaterialCommunityIcons name="format-list-bulleted" size={20} color="#999" />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity style={styles.input} onPress={() => setModalEstiloVisible(true)}>
   <Text style={{ color: estilos.length > 0 ? '#333' : '#999', fontSize: 16 }}>
@@ -116,7 +144,7 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.botonCancelar} onPress={() => setImageUri(null)} disabled={estadoCarga !== ''}>
+            <TouchableOpacity style={styles.botonCancelar} onPress={() => { limpiar(); setModalColorVisible(false); setModalTelaVisible(false); setModalEstiloVisible(false); }} disabled={estadoCarga !== ''}>
               <MaterialCommunityIcons name="close" size={24} color="#d9534f" />
             </TouchableOpacity>
           </View>
@@ -176,7 +204,9 @@ export default function HomeScreen() {
         <View style={styles.modalOverlay}><View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Elige el tipo de tela</Text>
           <FlatList data={TIPOS_TELA} keyExtractor={(item) => item} renderItem={({ item }) => (
-            <TouchableOpacity style={styles.modalOpcion} onPress={() => { setTipoTela(item); setModalTelaVisible(false); }}><Text style={styles.textoOpcion}>{item}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.modalOpcion} onPress={() => { setTipoTela(item); setModalTelaVisible(false); }}>
+              <Text style={styles.textoOpcion}>{item}</Text>
+            </TouchableOpacity>
           )}/>
           <TouchableOpacity style={styles.botonCerrarModal} onPress={() => setModalTelaVisible(false)}><Text style={styles.textoCerrarModal}>Cancelar</Text></TouchableOpacity>
         </View></View>
@@ -204,35 +234,3 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  colorBox: { width: 24, height: 24, borderRadius: 12, marginRight: 15, borderWidth: 1, borderColor: '#ddd' },
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 20 },
-  header: { marginTop: 10, marginBottom: 25 },
-  greeting: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-  subtitle: { fontSize: 16, color: '#666', marginTop: 5 },
-  climaContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e6dfd9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, alignSelf: 'flex-start', marginTop: 12 },
-  textoClima: { color: '#5c4033', fontWeight: 'bold', marginLeft: 6, fontSize: 14 },
-  actionCard: { backgroundColor: '#5c4033', borderRadius: 15, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 20, elevation: 3 },
-  actionTextContainer: { flex: 1, marginLeft: 15 },
-  actionTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  actionSubtitle: { color: '#d3c4bc', fontSize: 14, marginTop: 3 },
-  botonQuickAdd: { backgroundColor: '#8b5a2b', flexDirection: 'row', padding: 15, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 35, elevation: 3 },
-  textoQuickAdd: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
-  previewContainer: { backgroundColor: '#fff', borderRadius: 15, padding: 15, marginBottom: 35, alignItems: 'center', elevation: 2 },
-  previewImage: { width: 200, height: 266, borderRadius: 10, marginBottom: 15, backgroundColor: '#f9f5f3' },
-  input: { width: '100%', height: 52, backgroundColor: '#f9f5f3', paddingHorizontal: 15, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#e0e0e0', color: '#333', justifyContent: 'center' },
-  previewButtonsRow: { flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginTop: 10 },
-  botonSubir: { flex: 1, flexDirection: 'row', backgroundColor: '#4CAF50', height: 52, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  textoBotonSubir: { color: '#fff', fontWeight: 'bold', fontSize: 15, textAlign: 'center' },
-  botonCancelar: { width: 52, height: 52, borderRadius: 10, borderWidth: 1, borderColor: '#d9534f', justifyContent: 'center', alignItems: 'center' },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 15 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#fff', borderRadius: 15, padding: 20, maxHeight: '80%', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5, elevation: 5 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 15, textAlign: 'center' },
-  modalOpcion: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  modalOpcionRow: { flexDirection: 'row', paddingVertical: 15, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', justifyContent: 'space-between', alignItems: 'center' },
-  opcionSeleccionada: { backgroundColor: '#f9f5f3', borderRadius: 8 },
-  textoOpcion: { fontSize: 16, color: '#333', textAlign: 'center' },
-  botonCerrarModal: { marginTop: 15, padding: 15, backgroundColor: '#e6dfd9', borderRadius: 10, alignItems: 'center' },
-  textoCerrarModal: { color: '#5c4033', fontWeight: 'bold', fontSize: 16 }
-});

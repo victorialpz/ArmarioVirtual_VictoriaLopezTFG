@@ -4,11 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import io
 import re
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from difflib import get_close_matches
 import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter
 from rembg import remove, new_session
 import easyocr
+
+_ocr_executor = ThreadPoolExecutor(max_workers=1)
 
 app = FastAPI(title="API Armario Virtual - TFG")
 
@@ -54,18 +58,68 @@ MATERIALES_MAP = {
     'viscose': 'Viscosa', 'viscosa': 'Viscosa', 'rayon': 'Viscosa',
     # Nylon
     'nylon': 'Nylon', 'nailon': 'Nylon',
+    # Naturales menos comunes
+    'cañamo': 'Cáñamo', 'cáñamo': 'Cáñamo', 'hemp': 'Cáñamo', 'chanvre': 'Cáñamo',
+    'yute': 'Yute', 'jute': 'Yute',
+    'angora': 'Angora',
+    'alpaca': 'Alpaca',
+    'mohair': 'Mohair',
+    # Sintéticas / técnicas
+    'poliuretano': 'Poliuretano', 'polyurethane': 'Poliuretano', 'pu': 'Poliuretano',
+    'polipropileno': 'Polipropileno', 'polypropylene': 'Polipropileno',
+    'microfibra': 'Microfibra', 'microfiber': 'Microfibra', 'microfibre': 'Microfibra',
+    'neopreno': 'Neopreno', 'neoprene': 'Neopreno',
+    'gore-tex': 'Gore-Tex', 'goretex': 'Gore-Tex',
+    # Artificiales / especiales
+    'acetato': 'Acetato', 'acetate': 'Acetato',
+    'cupro': 'Cupro', 'cupra': 'Cupro',
+    'bambu': 'Bambú', 'bambú': 'Bambú', 'bamboo': 'Bambú',
+    # Tejidos / estructuras
+    'terciopelo': 'Terciopelo', 'velvet': 'Terciopelo', 'velours': 'Terciopelo',
+    'saten': 'Satén', 'satén': 'Satén', 'satin': 'Satén',
+    'franela': 'Franela', 'flannel': 'Franela',
+    'tul': 'Tul', 'tulle': 'Tul',
+    'encaje': 'Encaje', 'lace': 'Encaje', 'dentelle': 'Encaje',
+    'fieltro': 'Fieltro', 'felt': 'Fieltro', 'feutre': 'Fieltro',
+    'tweed': 'Tweed',
+    'popelin': 'Popelín', 'popelín': 'Popelín', 'poplin': 'Popelín',
+    'sarga': 'Sarga', 'twill': 'Sarga',
 }
 
 TIPOS_TELA_APP = {'Algodón', 'Lana', 'Poliéster', 'Lino', 'Seda', 'Vaquero/Denim', 'Cuero', 'Gasa'}
 
-PAT_NUM_MAT = re.compile(r'\b([1-9][0-9]?)\s*%\s*([A-Za-zÀ-ÿ]{3,})', re.IGNORECASE)
-PAT_MAT_NUM = re.compile(r'\b([A-Za-zÀ-ÿ]{3,})\s+([1-9][0-9]?)\s*%', re.IGNORECASE)
+PAT_NUM_MAT = re.compile(r'\b([1-9][0-9]{0,2})\s*%\s*([A-Za-zÀ-ÿ]{3,})', re.IGNORECASE)
+PAT_MAT_NUM = re.compile(r'\b([A-Za-zÀ-ÿ]{3,})\s+([1-9][0-9]{0,2})\s*%', re.IGNORECASE)
 
 # El OCR confunde % con: 3, 4, t, *, '/, ° — esta regex los normaliza antes de aplicar los patrones
 _RE_PCT_FIX = re.compile(
-    r'\b([1-9][0-9]?)\s*[3-4t\*\'\/°]{1,2}\s*(?=[A-Za-zÀ-ÿ]{3,})',
+    r'\b([1-9][0-9]{0,2})\s*[3-4t\*\'\/°]{1,2}\s*(?=[A-Za-zÀ-ÿ]{3,})',
     re.IGNORECASE,
 )
+
+# Caracteres válidos en una etiqueta de composición textil
+_OCR_ALLOWLIST = (
+    '0123456789% '
+    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    'áéíóúñüÁÉÍÓÚÑÜàèìòùÀÈÌÒÙâêîôûÂÊÎÔÛãõÃÕäöÄÖßčšžČŠŽłŁ'
+    '-.'
+)
+
+
+def _reconstruir_texto(bloques_raw: list, tolerancia_y: int = 20) -> str:
+    """Reconstruye el texto respetando el orden visual línea a línea usando las coordenadas del OCR."""
+    if not bloques_raw:
+        return ''
+    lineas: dict[int, list[tuple[float, str]]] = {}
+    for bbox, texto, _ in bloques_raw:
+        y_centro = int((bbox[0][1] + bbox[2][1]) / 2)
+        bucket = next((k for k in lineas if abs(k - y_centro) < tolerancia_y), y_centro)
+        lineas.setdefault(bucket, []).append((bbox[0][0], texto))
+    resultado = []
+    for y_key in sorted(lineas):
+        fila = sorted(lineas[y_key], key=lambda t: t[0])
+        resultado.append(' '.join(t for _, t in fila))
+    return '\n'.join(resultado)
 
 
 def _normalizar_texto(texto: str) -> str:
@@ -96,14 +150,12 @@ def _otsu(img_np: np.ndarray) -> int:
 
 
 def preprocess_label(imagen_pil: Image.Image) -> Image.Image:
-    """Escala, binariza con Otsu y aplica sharpen para mejorar el OCR."""
+    """Escala, realza contraste y aplica sharpen para mejorar el OCR."""
     if imagen_pil.width < 1500:
         factor = 1500 / imagen_pil.width
         imagen_pil = imagen_pil.resize((1500, int(imagen_pil.height * factor)), Image.LANCZOS)
-    img_np = np.array(imagen_pil.convert('L'))
-    t = _otsu(img_np)
-    binaria = np.where(img_np > t, 255, 0).astype(np.uint8)
-    img = Image.fromarray(binaria)
+    img = imagen_pil.convert('L')
+    img = ImageEnhance.Contrast(img).enhance(1.5)
     img = img.filter(ImageFilter.SHARPEN)
     return img
 
@@ -120,6 +172,18 @@ def _resolver(word: str) -> str | None:
     return MATERIALES_MAP[hits[0]] if hits else None
 
 
+def extraer_temperatura(texto: str) -> int | None:
+    candidatos = re.findall(r'(\d{2})\s*°?\s*c?\b', texto, re.IGNORECASE)
+    validas = [int(c) for c in candidatos if int(c) in (30, 40, 60, 90, 95)]
+    return min(validas) if validas else None
+
+
+def detectar_delicado(texto: str) -> bool:
+    claves = ['delicado', 'delicate', 'mano', 'hand wash', 'no centrifugar',
+              'gentle', 'dry clean', 'limpieza en seco']
+    return any(c in texto for c in claves)
+
+
 def extraer_composicion(texto: str) -> dict:
     """
     Recoge votos de porcentaje por material de todas las coincidencias
@@ -128,7 +192,7 @@ def extraer_composicion(texto: str) -> dict:
     """
     texto = _normalizar_texto(texto)
     votos: dict[str, list[int]] = {}
-
+    print(texto)
     for m in PAT_NUM_MAT.finditer(texto):
         pct, word = int(m.group(1)), m.group(2)
         material = _resolver(word)
@@ -163,13 +227,34 @@ async def leer_etiqueta(file: UploadFile = File(...)):
         print("✅ Modelo OCR listo.")
 
     imagen_bytes = await file.read()
-    imagen = Image.open(io.BytesIO(imagen_bytes))
-    imagen_procesada = preprocess_label(imagen)
+    imagen_rgb = Image.open(io.BytesIO(imagen_bytes)).convert('RGB')
+    import os
+    _debug_path = os.path.join(os.path.dirname(__file__), "debug_etiqueta.jpg")
+    imagen_rgb.save(_debug_path)
+    print(f"[DEBUG] Imagen guardada en {_debug_path} — tamaño: {imagen_rgb.size} px")
 
-    # detail=1 → confianza por bloque; paragraph=False → bloques individuales más precisos
-    bloques_raw = ocr_reader.readtext(np.array(imagen_procesada), detail=1, paragraph=False)
-    bloques = [texto for (_, texto, conf) in bloques_raw if conf > 0.3]
-    texto_raw = ' '.join(bloques)
+    loop = asyncio.get_event_loop()
+
+    # 1er intento: imagen RGB original con coordenadas para reconstruir orden visual
+    bloques_raw = await loop.run_in_executor(
+        _ocr_executor,
+        lambda: ocr_reader.readtext(np.array(imagen_rgb), detail=1, paragraph=False, allowlist=_OCR_ALLOWLIST)
+    )
+    print(f"[OCR-1-RGB] {len(bloques_raw)} bloques")
+
+    # 2do intento: escalar + realzar contraste si el 1er resultado es pobre
+    if len(bloques_raw) < 5:
+        imagen_procesada = preprocess_label(imagen_rgb)
+        bloques_raw2 = await loop.run_in_executor(
+            _ocr_executor,
+            lambda: ocr_reader.readtext(np.array(imagen_procesada), detail=1, paragraph=False, allowlist=_OCR_ALLOWLIST)
+        )
+        print(f"[OCR-2-PREP] {len(bloques_raw2)} bloques")
+        if len(bloques_raw2) > len(bloques_raw):
+            bloques_raw = bloques_raw2
+
+    texto_raw = _reconstruir_texto(bloques_raw).lower()
+    print(f"[OCR] texto reconstruido: {texto_raw[:300]!r}")
 
     composicion = extraer_composicion(texto_raw)
 
@@ -189,25 +274,16 @@ async def leer_etiqueta(file: UploadFile = File(...)):
         "ocr_text": texto_limpio,
         "composicion": composicion,
         "tipo_tela_sugerido": tipo_tela_sugerido,
+        "temp_lavado": extraer_temperatura(texto_raw),
+        "es_delicado": detectar_delicado(texto_raw),
     }
 
 
 @app.post("/quitar-fondo")
 async def quitar_fondo(file: UploadFile = File(...)):
     imagen_bytes = await file.read()
-
-    resultado_rgba_bytes = remove(imagen_bytes, session=session)
-
-    imagen_rgba = Image.open(io.BytesIO(resultado_rgba_bytes)).convert("RGBA")
-    fondo_blanco = Image.new("RGBA", imagen_rgba.size, "WHITE")
-    fondo_blanco.paste(imagen_rgba, (0, 0), imagen_rgba)
-    resultado_final = fondo_blanco.convert("RGB")
-
-    buffer_salida = io.BytesIO()
-    resultado_final.save(buffer_salida, format="JPEG", quality=95)
-    buffer_salida.seek(0)
-
-    return Response(content=buffer_salida.getvalue(), media_type="image/jpeg")
+    resultado_png_bytes = remove(imagen_bytes, session=session)
+    return Response(content=resultado_png_bytes, media_type="image/png")
 
 
 if __name__ == "__main__":

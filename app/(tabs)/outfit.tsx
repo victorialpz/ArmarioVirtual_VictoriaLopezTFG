@@ -1,11 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { styles } from '@/styles/screens/outfit';
 import { useGeneradorOutfits } from '../../hooks/useGeneradorOutfits';
 import { supabase } from '../../lib/supabase';
-
-const EVENTOS = ['Diario', 'Casual', 'Elegante', 'Fiesta', 'Deportivo'];
+import { ESTILOS_COMUNES } from '../../constants/opciones';
 
 export default function OutfitScreen() {
     // Estado para controlar qué pestaña vemos
@@ -24,6 +24,8 @@ export default function OutfitScreen() {
             generarOutfit();
         }
     };
+
+    const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
 
     // Estados de la Galería de Guardados
     const [outfitsGuardados, setOutfitsGuardados] = useState<any[]>([]);
@@ -109,9 +111,9 @@ export default function OutfitScreen() {
                 {/* Mini Moodboard del conjunto */}
                 <View style={styles.miniMoodboard}>
                     {prendasDelLook.map((prenda: any, index: number) => (
-                        <View key={index} style={styles.miniPrendaBox}>
+                        <TouchableOpacity key={index} style={styles.miniPrendaBox} onPress={() => setImagenAmpliada(prenda.imagen_url)} activeOpacity={0.8}>
                             <Image source={{ uri: prenda.imagen_url }} style={styles.miniImagen} resizeMode="contain" />
-                        </View>
+                        </TouchableOpacity>
                     ))}
                 </View>
             </View>
@@ -197,7 +199,7 @@ export default function OutfitScreen() {
                         <FlatList
                             horizontal
                             showsHorizontalScrollIndicator={false}
-                            data={EVENTOS}
+                            data={ESTILOS_COMUNES}
                             keyExtractor={(item) => item}
                             renderItem={({ item }) => (
                                 <TouchableOpacity 
@@ -222,13 +224,17 @@ export default function OutfitScreen() {
                                     {outfitGenerado.superior && (
                                         <View style={[styles.prendaBox, !outfitGenerado.inferior && styles.vestidoBox]}>
                                             <Text style={styles.prendaLabel}>{!outfitGenerado.inferior ? 'Vestido' : 'Superior'}</Text>
-                                            <Image source={{ uri: outfitGenerado.superior.imagen_url }} style={styles.prendaImagen} resizeMode="contain" />
+                                            <TouchableOpacity style={{ width: '100%', height: '85%' }} onPress={() => setImagenAmpliada(outfitGenerado.superior.imagen_url)} activeOpacity={0.8}>
+                                                <Image source={{ uri: outfitGenerado.superior.imagen_url }} style={styles.prendaImagen} resizeMode="contain" />
+                                            </TouchableOpacity>
                                         </View>
                                     )}
                                     {outfitGenerado.inferior && (
                                         <View style={styles.prendaBox}>
                                             <Text style={styles.prendaLabel}>Inferior</Text>
-                                            <Image source={{ uri: outfitGenerado.inferior.imagen_url }} style={styles.prendaImagen} resizeMode="contain" />
+                                            <TouchableOpacity style={{ width: '100%', height: '85%' }} onPress={() => setImagenAmpliada(outfitGenerado.inferior.imagen_url)} activeOpacity={0.8}>
+                                                <Image source={{ uri: outfitGenerado.inferior.imagen_url }} style={styles.prendaImagen} resizeMode="contain" />
+                                            </TouchableOpacity>
                                         </View>
                                     )}
                                 </View>
@@ -236,13 +242,17 @@ export default function OutfitScreen() {
                                     {outfitGenerado.abrigo && (
                                         <View style={styles.prendaBox}>
                                             <Text style={styles.prendaLabel}>Abrigo / Capa</Text>
-                                            <Image source={{ uri: outfitGenerado.abrigo.imagen_url }} style={styles.prendaImagen} resizeMode="contain" />
+                                            <TouchableOpacity style={{ width: '100%', height: '85%' }} onPress={() => setImagenAmpliada(outfitGenerado.abrigo.imagen_url)} activeOpacity={0.8}>
+                                                <Image source={{ uri: outfitGenerado.abrigo.imagen_url }} style={styles.prendaImagen} resizeMode="contain" />
+                                            </TouchableOpacity>
                                         </View>
                                     )}
                                     {outfitGenerado.calzado && (
                                         <View style={styles.prendaBox}>
                                             <Text style={styles.prendaLabel}>Calzado</Text>
-                                            <Image source={{ uri: outfitGenerado.calzado.imagen_url }} style={styles.prendaImagen} resizeMode="contain" />
+                                            <TouchableOpacity style={{ width: '100%', height: '85%' }} onPress={() => setImagenAmpliada(outfitGenerado.calzado.imagen_url)} activeOpacity={0.8}>
+                                                <Image source={{ uri: outfitGenerado.calzado.imagen_url }} style={styles.prendaImagen} resizeMode="contain" />
+                                            </TouchableOpacity>
                                         </View>
                                     )}
                                 </View>
@@ -256,9 +266,9 @@ export default function OutfitScreen() {
                     </View>
 
                     <View style={styles.accionesContainer}>
-                        <TouchableOpacity style={styles.botonPrincipal} onPress={handleGenerar} disabled={loading}>
+                        <TouchableOpacity style={styles.botonPrimario} onPress={handleGenerar} disabled={loading}>
                             <MaterialCommunityIcons name="magic-staff" size={24} color="#fff" style={styles.iconoBoton} />
-                            <Text style={styles.textoBotonPrincipal}>Generar con IA</Text>
+                            <Text style={styles.textoBotonPrimario}>Generar con IA</Text>
                         </TouchableOpacity>
 
                         {outfitGenerado && (
@@ -297,67 +307,16 @@ export default function OutfitScreen() {
                     )}
                 </View>
             )}
+            {/* VISOR DE IMAGEN A TAMAÑO REAL */}
+            <Modal visible={!!imagenAmpliada} transparent animationType="fade" onRequestClose={() => setImagenAmpliada(null)}>
+                <View style={styles.visorFondo}>
+                    <Image source={{ uri: imagenAmpliada! }} style={styles.visorImagen} resizeMode="contain" />
+                    <TouchableOpacity style={styles.visorCerrar} onPress={() => setImagenAmpliada(null)}>
+                        <MaterialCommunityIcons name="close" size={28} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            </Modal>
         </View>
     );
 }
 
-// --- ESTILOS VISUALES ---
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5' },
-    header: { padding: 20, paddingTop: 30, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e0e0e0' },
-    titulo: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-    subtitulo: { fontSize: 16, color: '#666', marginTop: 5 },
-    
-    // Estilos del Toggle (Pestañas)
-    tabContainer: { flexDirection: 'row', margin: 20, backgroundColor: '#e0e0e0', borderRadius: 10, padding: 4 },
-    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-    tabActiva: { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
-    tabText: { fontSize: 15, fontWeight: '600', color: '#666' },
-    tabTextActiva: { color: '#5c4033' },
-
-    climaInfo: { flexDirection: 'row', paddingHorizontal: 20, alignItems: 'center', marginBottom: 10 },
-    textoClima: { fontSize: 14, color: '#666', marginLeft: 8, fontStyle: 'italic' },
-    sectionFiltro: { paddingHorizontal: 20, marginBottom: 15 },
-    tituloSeccion: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 10 },
-    pildoraEvento: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, backgroundColor: '#e0e0e0', marginRight: 10 },
-    pildoraActiva: { backgroundColor: '#5c4033' },
-    textoEvento: { color: '#666', fontWeight: 'bold' },
-    textoEventoActivo: { color: '#fff' },
-    outfitCard: { backgroundColor: '#fff', marginHorizontal: 20, borderRadius: 20, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 4 },
-    ropaContainer: { width: '100%', flexDirection: 'row', justifyContent: 'space-between' },
-    columnaGrid: { width: '48%', flexDirection: 'column' },
-    prendaBox: { backgroundColor: '#fff', borderRadius: 15, padding: 10, marginBottom: 15, alignItems: 'center', height: 220, borderWidth: 1, borderColor: '#f0eade' },
-    vestidoBox: { height: 455 },
-    prendaLabel: { fontSize: 12, fontWeight: 'bold', color: '#8b5a2b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-    prendaImagen: { width: '100%', height: '85%' },
-    ropaContainerPlaceholder: { height: 450, width: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9f5f3', borderRadius: 15, padding: 20 },
-    loadingContainer: { height: 450, justifyContent: 'center', alignItems: 'center' },
-    textoCargando: { marginTop: 15, color: '#666', fontWeight: 'bold' },
-    textoVacio: { marginTop: 15, color: '#888', textAlign: 'center', lineHeight: 22 },
-    accionesContainer: { paddingHorizontal: 20, marginTop: 25 },
-    botonPrincipal: { flexDirection: 'row', backgroundColor: '#5c4033', borderRadius: 15, paddingVertical: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 15, shadowColor: '#5c4033', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 5 },
-    textoBotonPrincipal: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-    botonSecundario: { flexDirection: 'row', backgroundColor: '#e6dfd9', borderRadius: 15, paddingVertical: 18, justifyContent: 'center', alignItems: 'center' },
-    textoBotonSecundario: { color: '#5c4033', fontSize: 16, fontWeight: 'bold' },
-    iconoBoton: { marginRight: 10 },
-
-    // --- Estilos para la lista de Looks Guardados ---
-    cardGuardado: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 },
-    nombreLook: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-    tagLook: { backgroundColor: '#e6dfd9', color: '#5c4033', fontSize: 12, fontWeight: 'bold', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginRight: 8, overflow: 'hidden' },
-    botonBorrar: { padding: 5, backgroundColor: '#fcebea', borderRadius: 10 },
-    miniMoodboard: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' },
-    miniPrendaBox: { width: '47%', height: 120, backgroundColor: '#fff', borderRadius: 12, padding: 5, borderWidth: 1, borderColor: '#eee' },
-    miniImagen: { width: '100%', height: '100%' },
-    // Temperatura manual
-    modoTempRow: { flexDirection: 'row', gap: 10, marginTop: 5 },
-    modoTempBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: '#e0e0e0' },
-    modoTempBtnActivo: { backgroundColor: '#5c4033' },
-    modoTempTexto: { fontSize: 13, fontWeight: '600', color: '#666' },
-    modoTempTextoActivo: { color: '#fff' },
-    tempManualRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 14, gap: 20 },
-    tempBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#5c4033', justifyContent: 'center', alignItems: 'center' },
-    tempBtnTexto: { color: '#fff', fontSize: 22, fontWeight: 'bold', lineHeight: 26 },
-    tempValor: { fontSize: 32, fontWeight: 'bold', color: '#333', minWidth: 80, textAlign: 'center' }
-});

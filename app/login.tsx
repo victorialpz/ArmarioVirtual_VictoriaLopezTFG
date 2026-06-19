@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { styles } from '@/styles/screens/login';
 
 import { logger } from '@/lib/logger';
 import { supabase } from '@/lib/supabase';
@@ -84,61 +85,3 @@ export default function LoginScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f9f5f3',
-        padding: 20,
-        justifyContent: 'center',
-    },
-    header: {
-        alignItems: 'center',
-        marginBottom: 50,
-    },
-    titulo: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#333',
-        marginTop: 10,
-    },
-    subtitulo: {
-        fontSize: 16,
-        color: '#666',
-        marginTop: 5,
-    },
-    form: {
-        width: '100%',
-    },
-    input: {
-        backgroundColor: '#fff',
-        padding: 15,
-        borderRadius: 10,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#ddd',
-        fontSize: 16,
-    },
-    botonPrincipal: {
-        backgroundColor: '#5c4033',
-        padding: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    textoBotonPrincipal: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    botonSecundario: {
-        padding: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    textoBotonSecundario: {
-        color: '#5c4033',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-});

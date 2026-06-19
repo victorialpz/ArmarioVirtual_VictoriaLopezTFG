@@ -3,7 +3,8 @@ import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { styles } from '@/styles/screens/registro';
 
 import { logger } from '@/lib/logger';
 
@@ -108,13 +109,3 @@ export default function RegistroDatosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9f5f3', padding: 20 },
-  header: { alignItems: 'center', marginBottom: 30 },
-  titulo: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-  form: { width: '100%' },
-  label: { fontSize: 14, fontWeight: 'bold', color: '#5c4033', marginBottom: 8, marginTop: 15 },
-  input: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 15, borderWidth: 1, borderColor: '#ddd' },
-  boton: { backgroundColor: '#5c4033', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 20 },
-  textoBoton: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
-});

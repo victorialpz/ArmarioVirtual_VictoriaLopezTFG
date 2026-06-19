@@ -1,0 +1,83 @@
+import { StyleSheet } from 'react-native';
+import { Colors } from '../colors';
+import { commonStyles } from '../common';
+
+const _screen = StyleSheet.create({
+  container:  { flex: 1, backgroundColor: Colors.background },
+  header: {
+    flexDirection: 'row',
+    padding: 20,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    alignItems: 'center',
+  },
+  infoLavadora:     { flex: 1, marginLeft: 20 },
+  tituloSecundario: { fontSize: 20, fontWeight: 'bold', color: Colors.text, marginBottom: 8 },
+  datosBox: {
+    backgroundColor: Colors.surfaceAlt,
+    padding: 12,
+    borderRadius: 12,
+  },
+  textoDato:    { fontSize: 14, color: Colors.textSecondary, marginBottom: 4 },
+  textoBold:    { fontWeight: 'bold', color: Colors.primary },
+  seccionGrupo: { marginTop: 20, paddingHorizontal: 20 },
+  cabeceraGrupo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  tituloGrupo:  { fontSize: 20, fontWeight: 'bold', color: Colors.text },
+  etiquetaTag: {
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  textoTag:           { color: Colors.primary, fontWeight: 'bold', fontSize: 12 },
+  descripcionGrupo:   { fontSize: 14, color: Colors.textSecondary, lineHeight: 20, marginBottom: 20 },
+  listaColada:        { paddingBottom: 20 },
+  cardColada: {
+    backgroundColor: Colors.surface,
+    borderRadius: 15,
+    padding: 15,
+    marginRight: 15,
+    alignItems: 'center',
+    width: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  iconoFondo: {
+    width: 80,
+    height: 80,
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  nombreColada: { fontSize: 14, fontWeight: '600', color: Colors.text, textAlign: 'center' },
+  tejidoColada: { fontSize: 12, color: Colors.textMuted, marginTop: 4 },
+  textoVacio:   { color: Colors.textMuted, fontStyle: 'italic', padding: 20 },
+  botonLavar: {
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    paddingVertical: 16,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  textoBotonLavar: { color: Colors.textLight, fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
+});
+
+export const styles = { ...commonStyles, ..._screen };
