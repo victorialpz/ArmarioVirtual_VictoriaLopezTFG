@@ -45,7 +45,7 @@ export default function LoginScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <MaterialCommunityIcons name="hanger" size={80} color="#5c4033" />
+                    <MaterialCommunityIcons name="hanger" size={80} color="#1A2024" />
                     <Text style={styles.titulo}>Armario Virtual</Text>
                     <Text style={styles.subtitulo}>Tu ropa, organizada e inteligente</Text>
                 </View>
@@ -68,7 +68,7 @@ export default function LoginScreen() {
                     />
 
                     {loading ? (
-                        <ActivityIndicator size="large" color="#5c4033" style={{ marginTop: 20 }} />
+                        <ActivityIndicator size="large" color="#1A2024" style={{ marginTop: 20 }} />
                     ) : (
                         <>
                             <TouchableOpacity style={styles.botonPrincipal} onPress={iniciarSesion}>

@@ -1,9 +1,12 @@
 import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { elegirImagen } from '@/lib/elegirImagen';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 
 import { logger } from '@/lib/logger';
+import { useUserContext } from '@/contexts/UserContext';
+import { Image } from 'expo-image';
 import {
   ActivityIndicator,
   Alert,
@@ -74,6 +77,11 @@ export default function PerfilScreen() {
     altura: '',
   });
 
+  const { refreshAvatar } = useUserContext();
+
+  const [fotoPerfil, setFotoPerfil]     = useState<string | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+
   const [lavadora, setLavadora] = useState<LavadoraData>(LAVADORA_VACIA);
   const [catalogo, setCatalogo] = useState<CatalogoLavadora[]>([]);
   const [modoSeleccion, setModoSeleccion] = useState<'catalogo' | 'manual'>('catalogo');
@@ -118,6 +126,10 @@ export default function PerfilScreen() {
             edad:      usuarioData.edad   ? usuarioData.edad.toString()   : '',
             altura:    usuarioData.altura ? usuarioData.altura.toString() : '',
           });
+          setFotoPerfil(usuarioData.foto_perfil
+            ? `${usuarioData.foto_perfil}?t=${Date.now()}`
+            : null
+          );
         }
 
         if (lavadoraData) {
@@ -215,6 +227,90 @@ export default function PerfilScreen() {
     }
   };
 
+  // ── Foto de perfil ────────────────────────────────────────────────────────
+
+  const gestionarFoto = () => {
+    const opciones = fotoPerfil
+      ? [
+          { text: 'Cambiar foto',   onPress: abrirGaleria },
+          { text: 'Eliminar foto',  style: 'destructive' as const, onPress: eliminarFotoPerfil },
+          { text: 'Cancelar',       style: 'cancel' as const },
+        ]
+      : [
+          { text: 'Añadir foto de perfil', onPress: abrirGaleria },
+          { text: 'Cancelar', style: 'cancel' as const },
+        ];
+    Alert.alert('Foto de perfil', undefined, opciones);
+  };
+
+  const abrirGaleria = () => {
+    elegirImagen(
+      { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.85, base64: true },
+      async (asset) => { await subirFotoPerfil(asset.base64 ?? null); }
+    );
+  };
+
+  const subirFotoPerfil = async (base64Data: string | null) => {
+    if (!base64Data) {
+      Alert.alert('Error', 'No se pudo obtener la imagen.');
+      return;
+    }
+    try {
+      setSubiendoFoto(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Debes iniciar sesión.');
+
+      // Convertir base64 → Uint8Array (fiable en React Native + Hermes)
+      const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+      const fileName = `${user.id}/avatar.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, bytes, { contentType: 'image/jpeg', upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+
+      const { error: dbError } = await supabase
+        .from('usuarios')
+        .update({ foto_perfil: urlData.publicUrl })
+        .eq('id', user.id);
+      if (dbError) throw dbError;
+
+      setFotoPerfil(`${urlData.publicUrl}?t=${Date.now()}`);
+      await refreshAvatar();
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setSubiendoFoto(false);
+    }
+  };
+
+  const eliminarFotoPerfil = async () => {
+    try {
+      setSubiendoFoto(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.storage.from('avatars').remove([`${user.id}/avatar.jpg`]);
+
+      const { error } = await supabase
+        .from('usuarios')
+        .update({ foto_perfil: null })
+        .eq('id', user.id);
+      if (error) throw error;
+
+      setFotoPerfil(null);
+      await refreshAvatar();
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setSubiendoFoto(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const cerrarSesion = async () => {
     Alert.alert(
       "Cerrar Sesión",
@@ -242,7 +338,7 @@ export default function PerfilScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#5c4033" />
+        <ActivityIndicator size="large" color="#1A2024" />
       </View>
     );
   }
@@ -260,9 +356,21 @@ export default function PerfilScreen() {
       >
 
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <MaterialCommunityIcons name="account-circle" size={80} color="#5c4033" />
-          </View>
+          <TouchableOpacity onPress={gestionarFoto} style={styles.avatarWrapper}>
+            {fotoPerfil ? (
+              <Image source={{ uri: fotoPerfil }} style={styles.avatarImagen} contentFit="cover" />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <MaterialCommunityIcons name="account" size={52} color="#1A2024" />
+              </View>
+            )}
+            <View style={styles.avatarBadge}>
+              {subiendoFoto
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <MaterialCommunityIcons name="camera" size={14} color="#fff" />
+              }
+            </View>
+          </TouchableOpacity>
           <Text style={styles.titulo}>Mi Perfil</Text>
           <Text style={styles.subtitulo}>Configura tus datos personales</Text>
         </View>
@@ -273,7 +381,7 @@ export default function PerfilScreen() {
             <TextInput style={styles.input} placeholder="Usuario" value={formData.usuario} onChangeText={(text) => handleChange('usuario', text)} />
           </View>
 
-          <View style={[styles.inputGroup, { backgroundColor: '#f0f0f0' }]}>
+          <View style={[styles.inputGroup, { backgroundColor: '#F4F6F8' }]}>
             <MaterialCommunityIcons name="email" size={20} color="#999" style={styles.icon} />
             <TextInput style={[styles.input, { color: '#999' }]} placeholder="Correo electrónico" value={formData.correo} editable={false} />
           </View>
@@ -294,9 +402,23 @@ export default function PerfilScreen() {
           </View>
 
           <View style={styles.row}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-              <MaterialCommunityIcons name="gender-male-female" size={20} color="#666" style={styles.icon} />
-              <TextInput style={styles.input} placeholder="Sexo" value={formData.sexo} onChangeText={(text) => handleChange('sexo', text)} />
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <View style={{ flexDirection: 'row', height: 48, backgroundColor: '#f0ece8', borderRadius: 10, padding: 3 }}>
+                {['Mujer', 'Hombre'].map(opcion => (
+                  <TouchableOpacity
+                    key={opcion}
+                    style={[
+                      { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
+                      formData.sexo === opcion && { backgroundColor: '#1A2024' },
+                    ]}
+                    onPress={() => handleChange('sexo', opcion)}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: formData.sexo === opcion ? '#fff' : '#888' }}>
+                      {opcion}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
             <View style={[styles.inputGroup, { flex: 0.8, marginRight: 10 }]}>
               <TextInput style={styles.input} placeholder="Edad" keyboardType="numeric" value={formData.edad} onChangeText={(text) => handleChange('edad', text)} />
@@ -311,10 +433,10 @@ export default function PerfilScreen() {
           <Text style={[styles.subtitulo, { alignSelf: 'flex-start', marginTop: 15, marginBottom: 10, fontWeight: 'bold' }]}>Mi Lavadora</Text>
 
           {/* Toggle catálogo / manual */}
-          <View style={[styles.row, { marginBottom: 15, backgroundColor: '#f0f0f0', borderRadius: 12, padding: 4 }]}>
+          <View style={[styles.row, { marginBottom: 15, backgroundColor: '#F4F6F8', borderRadius: 12, padding: 4 }]}>
             <TouchableOpacity
               style={[{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-                modoSeleccion === 'catalogo' && { backgroundColor: '#5c4033' }]}
+                modoSeleccion === 'catalogo' && { backgroundColor: '#1A2024' }]}
               onPress={() => setModoSeleccion('catalogo')}
             >
               <Text style={{ color: modoSeleccion === 'catalogo' ? '#fff' : '#666', fontWeight: '600', fontSize: 13 }}>
@@ -323,7 +445,7 @@ export default function PerfilScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-                modoSeleccion === 'manual' && { backgroundColor: '#5c4033' }]}
+                modoSeleccion === 'manual' && { backgroundColor: '#1A2024' }]}
               onPress={() => { setModoSeleccion('manual'); setLavadora(l => ({ ...l, id_catalogo: null })); }}
             >
               <Text style={{ color: modoSeleccion === 'manual' ? '#fff' : '#666', fontWeight: '600', fontSize: 13 }}>
@@ -357,7 +479,7 @@ export default function PerfilScreen() {
               {/* Specs del modelo seleccionado (solo lectura) */}
               {lavadora.modelo ? (
                 <View style={{ backgroundColor: '#f9f5f2', borderRadius: 12, padding: 15, marginBottom: 15 }}>
-                  <Text style={{ fontWeight: '600', color: '#5c4033', marginBottom: 8 }}>Especificaciones</Text>
+                  <Text style={{ fontWeight: '600', color: '#1A2024', marginBottom: 8 }}>Especificaciones</Text>
                   <Text style={{ color: '#666', fontSize: 13 }}>
                     Carga máx: <Text style={{ fontWeight: '600', color: '#333' }}>{lavadora.carga_maxima_kg} kg</Text>
                   </Text>
@@ -372,18 +494,18 @@ export default function PerfilScreen() {
                   </Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 8 }}>
                     {lavadora.tiene_delicado && (
-                      <View style={{ backgroundColor: '#e8d5c4', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-                        <Text style={{ fontSize: 12, color: '#5c4033' }}>Delicado</Text>
+                      <View style={{ backgroundColor: '#E2E8F0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ fontSize: 12, color: '#1A2024' }}>Delicado</Text>
                       </View>
                     )}
                     {lavadora.tiene_lana && (
-                      <View style={{ backgroundColor: '#e8d5c4', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-                        <Text style={{ fontSize: 12, color: '#5c4033' }}>Lana</Text>
+                      <View style={{ backgroundColor: '#E2E8F0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ fontSize: 12, color: '#1A2024' }}>Lana</Text>
                       </View>
                     )}
                     {lavadora.tiene_vapor && (
-                      <View style={{ backgroundColor: '#e8d5c4', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
-                        <Text style={{ fontSize: 12, color: '#5c4033' }}>Vapor</Text>
+                      <View style={{ backgroundColor: '#E2E8F0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ fontSize: 12, color: '#1A2024' }}>Vapor</Text>
                       </View>
                     )}
                   </View>
@@ -440,16 +562,16 @@ export default function PerfilScreen() {
               keyExtractor={(item) => item}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', flexDirection: 'row', alignItems: 'center' }}
+                  style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: '#F4F6F8', flexDirection: 'row', alignItems: 'center' }}
                   onPress={() => {
                     setLavadora(() => ({ ...LAVADORA_VACIA, marca: item }));
                     setShowMarcaPicker(false);
                   }}
                 >
-                  <MaterialCommunityIcons name="washing-machine" size={20} color="#5c4033" style={{ marginRight: 12 }} />
+                  <MaterialCommunityIcons name="washing-machine" size={20} color="#1A2024" style={{ marginRight: 12 }} />
                   <Text style={{ fontSize: 16, color: '#333', fontWeight: lavadora.marca === item ? '700' : '400' }}>{item}</Text>
                   {lavadora.marca === item && (
-                    <MaterialCommunityIcons name="check" size={20} color="#5c4033" style={{ marginLeft: 'auto' }} />
+                    <MaterialCommunityIcons name="check" size={20} color="#1A2024" style={{ marginLeft: 'auto' }} />
                   )}
                 </TouchableOpacity>
               )}
@@ -473,7 +595,7 @@ export default function PerfilScreen() {
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', flexDirection: 'row', alignItems: 'center' }}
+                  style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: '#F4F6F8', flexDirection: 'row', alignItems: 'center' }}
                   onPress={() => seleccionarModeloCatalogo(item)}
                 >
                   <View style={{ flex: 1 }}>
@@ -485,7 +607,7 @@ export default function PerfilScreen() {
                     </Text>
                   </View>
                   {lavadora.id_catalogo === item.id && (
-                    <MaterialCommunityIcons name="check" size={20} color="#5c4033" />
+                    <MaterialCommunityIcons name="check" size={20} color="#1A2024" />
                   )}
                 </TouchableOpacity>
               )}

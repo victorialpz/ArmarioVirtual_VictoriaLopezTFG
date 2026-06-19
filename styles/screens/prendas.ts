@@ -63,7 +63,19 @@ const _screen = StyleSheet.create({
   },
 
   // Modal de detalle (tamaño real)
-  modalContainer:       { flex: 1, backgroundColor: '#111' },
+  modalContainer:  { flex: 1, backgroundColor: '#111' },
+  panelHandle: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 4,
+  },
+  panelDragBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#ccc',
+  },
   botonCerrarDetalle: {
     position: 'absolute',
     top: 50,
@@ -127,7 +139,7 @@ const _screen = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#d4c5b5',
+    borderColor: '#CBD5E0',
   },
   tagChipTexto:             { color: Colors.primary, fontWeight: '600', fontSize: 13 },
   badgeAutoDetectado: {
