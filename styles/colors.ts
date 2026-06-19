@@ -1,26 +1,28 @@
 export const Colors = {
-  // Marca
-  primary:        '#5c4033',
-  primaryLight:   '#8b5a2b',
-  secondary:      '#e6dfd9',
-  secondaryDark:  '#d3c4bc',
+  // ── Tech Couture ──────────────────────────────────────────────────
+  primary:        '#1A2024',   // Gris Pizarra Oscuro  → títulos, botones, texto principal
+  primaryLight:   '#5E7E91',   // Azul Empolvado (acento) → favoritos, IA, interactivos
+  accent:         '#5E7E91',   // alias explícito del acento
+
+  secondary:      '#E2E8F0',   // Gris Acero → pills inactivas, botones secundarios
+  secondaryDark:  '#CBD5E0',   // Gris Acero oscuro → bordes marcados
 
   // Fondos
-  background:     '#f5f5f5',
-  surface:        '#ffffff',
-  surfaceAlt:     '#f9f5f3',
-  surfaceAlt2:    '#f0eade',
+  background:     '#FFFFFF',   // Blanco Puro
+  surface:        '#FFFFFF',   // Blanco Puro
+  surfaceAlt:     '#F4F6F8',   // Blanco Hielo → cajas de ropa, moodboard
+  surfaceAlt2:    '#F4F6F8',   // igual
 
   // Bordes
-  border:         '#e0e0e0',
-  borderLight:    '#f0f0f0',
+  border:         '#E2E8F0',
+  borderLight:    '#F4F6F8',
 
   // Texto
-  text:           '#333333',
-  textSecondary:  '#666666',
-  textMuted:      '#888888',
-  textHint:       '#999999',
-  textLight:      '#ffffff',
+  text:           '#1A2024',
+  textSecondary:  '#64748B',
+  textMuted:      '#94A3B8',
+  textHint:       '#94A3B8',
+  textLight:      '#FFFFFF',
 
   // Semánticos
   success:        '#4CAF50',

@@ -1,7 +1,6 @@
-import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert } from 'react-native';
-import { logger } from '../lib/logger';
+import { elegirImagen } from '../lib/elegirImagen';
 import { supabase } from '../lib/supabase';
 
 const API_BASE = "http://192.168.1.135:8000";
@@ -31,67 +30,53 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   const [tags, setTags]       = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
+  const _subiendo = useRef(false);
+
   // ──────────────────────────────────────────────────────────────────
   // GALERÍA — prenda principal
   // ──────────────────────────────────────────────────────────────────
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      logger.warn('useSubirPrenda', 'Permiso denegado');
-      Alert.alert('Permiso necesario', '¡Necesitamos permisos para acceder a tu galería!');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 0.8,
-    });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+  const pickImage = () => {
+    elegirImagen(
+      { mediaTypes: ['images'], allowsEditing: false, quality: 0.8 },
+      (asset) => setImageUri(asset.uri)
+    );
   };
 
   // ──────────────────────────────────────────────────────────────────
   // GALERÍA — foto de etiqueta física → llama al OCR automáticamente
   // ──────────────────────────────────────────────────────────────────
-  const pickLabelImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 1.0, // máxima calidad para que el OCR funcione bien
-    });
-    if (result.canceled) return;
+  const pickLabelImage = () => {
+    elegirImagen(
+      { mediaTypes: ['images'], allowsEditing: true, quality: 1.0 },
+      async (asset) => {
+        const uri = asset.uri;
+        setLabelImageUri(uri);
+        setLoadingOcr(true);
+        try {
+          const formData = new FormData();
+          formData.append('file', { uri, name: `etiqueta_${Date.now()}.jpg`, type: 'image/jpeg' } as any);
 
-    const uri = result.assets[0].uri;
-    setLabelImageUri(uri);
-    setLoadingOcr(true);
+          const response = await fetch(MI_OCR_URL, { method: 'POST', body: formData });
+          if (!response.ok) throw new Error('El servidor no pudo leer la etiqueta.');
 
-    try {
-      const formData = new FormData();
-      formData.append('file', { uri, name: `etiqueta_${Date.now()}.jpg`, type: 'image/jpeg' } as any);
+          const data = await response.json();
+          setEtiquetaOcr(data.ocr_text || '');
 
-      const response = await fetch(MI_OCR_URL, { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('El servidor no pudo leer la etiqueta.');
+          // DEBUG — elimina este Alert cuando funcione correctamente
+          Alert.alert('OCR respuesta', `Tela leida: "${data.ocr_text}"\n"`);
 
-      const data = await response.json();
-      setEtiquetaOcr(data.ocr_text || '');
-
-      // DEBUG — elimina este Alert cuando funcione correctamente
-      Alert.alert('OCR respuesta', `ocr_text: "${data.ocr_text}"\ntipo_tela_sugerido: "${data.tipo_tela_sugerido}"`);
-
-      const composicionDetectada = (data.ocr_text ?? '').trim() || (data.tipo_tela_sugerido ?? '').trim();
-      if (composicionDetectada) {
-        setTipoTela(composicionDetectada);
-        setTelaAutoDetectada(true);
+          const composicionDetectada = (data.ocr_text ?? '').trim() || (data.tipo_tela_sugerido ?? '').trim();
+          if (composicionDetectada) {
+            setTipoTela(composicionDetectada);
+            setTelaAutoDetectada(true);
+          }
+        } catch (error: any) {
+          Alert.alert('OCR fallido', `${error.message}\nPuedes escribir el texto manualmente.`);
+        } finally {
+          setLoadingOcr(false);
+        }
       }
-    } catch (error: any) {
-      Alert.alert('OCR fallido', `${error.message}\nPuedes escribir el texto manualmente.`);
-    } finally {
-      setLoadingOcr(false);
-    }
+    );
   };
 
   // ──────────────────────────────────────────────────────────────────
@@ -132,12 +117,13 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   // SUBIR PRENDA — flujo completo
   // ──────────────────────────────────────────────────────────────────
   const subirPrenda = async () => {
-    if (!imageUri) return;
+    if (!imageUri || _subiendo.current) return;
     if (!categoria || colores.length === 0 || !tipoTela || estilos.length === 0) {
       Alert.alert('Faltan datos', 'Por favor, rellena los campos obligatorios.');
       return;
     }
 
+    _subiendo.current = true;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Debes iniciar sesión.');
@@ -148,7 +134,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
       formData.append('file', { uri: imageUri, name: 'prenda.jpg', type: 'image/jpeg' } as any);
 
       const apiResponse = await fetch(MI_API_URL, { method: 'POST', body: formData });
-      if (!apiResponse.ok) throw new Error('Fallo al conectar con la IA.');
+      if (!apiResponse.ok) throw new Error('Fallo al conectar.');
 
       const bufferImagen = await apiResponse.arrayBuffer();
 
@@ -189,6 +175,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
+      _subiendo.current = false;
       setEstadoCarga('');
     }
   };

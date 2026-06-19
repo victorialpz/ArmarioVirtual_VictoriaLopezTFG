@@ -67,7 +67,7 @@ export const commonStyles = StyleSheet.create({
     borderRadius: 12,
     marginRight: 15,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#E2E8F0',
   },
 
   // ── Inputs ────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ export const commonStyles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     margin: 20,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#E2E8F0',
     borderRadius: 10,
     padding: 4,
   },
@@ -186,7 +186,7 @@ export const commonStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F4F6F8',
     marginRight: 10,
   },
   pildoraActiva: { backgroundColor: Colors.primary },

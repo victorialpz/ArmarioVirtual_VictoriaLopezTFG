@@ -8,7 +8,7 @@ const OPENWEATHER_API_KEY = "335365b4cdb6c5a038c28b16c4701b64";
 
 export const useGeneradorOutfits = () => {
   const [loading, setLoading] = useState(false);
-  const [climaActual, setClimaActual] = useState<{ temp: number; descripcion: string; tipo: string } | null>(null);
+  const [climaActual, setClimaActual] = useState<{ temp: number; descripcion: string; tipo: string; localidad: string } | null>(null);
   const [outfitGenerado, setOutfitGenerado] = useState<any | null>(null);
 
   // 1. OBTENER EL CLIMA CON GPS
@@ -35,7 +35,7 @@ export const useGeneradorOutfits = () => {
       if (temp < 15) tipoClima = 'Frío';
       if (temp > 25) tipoClima = 'Calor';
 
-      const clima = { temp, descripcion: data.weather[0].description, tipo: tipoClima };
+      const clima = { temp, descripcion: data.weather[0].description, tipo: tipoClima, localidad: data.name as string || '' };
       setClimaActual(clima);
       return clima;
     } catch (error) {
@@ -45,13 +45,52 @@ export const useGeneradorOutfits = () => {
     }
   };
 
-  const calcularClimaDesdeTemp = (temp: number) => {
+  const calcularClimaDesdeTemp = (temp: number, localidad = '') => {
     const tipo = temp < 15 ? 'Frío' : temp > 25 ? 'Calor' : 'Entretiempo';
     const descripcion = temp < 15 ? 'frío' : temp > 25 ? 'caluroso' : 'templado';
-    const clima = { temp, descripcion, tipo };
+    const clima = { temp, descripcion, tipo, localidad };
     setClimaActual(clima);
     return clima;
   };
+
+  // ── helpers de estado ────────────────────────────────────────────────
+  const _slotDe = (cat: string): 'superior' | 'inferior' | 'calzado' | 'abrigo' | null => {
+    if (['Top', 'Camisa', 'Camiseta', 'Blusa', 'Vestido'].some(k => cat.includes(k))) return 'superior';
+    if (['Pantalón', 'Falda', 'Vaquero'].some(k => cat.includes(k))) return 'inferior';
+    if (['Zapato', 'Calzado', 'Zapatilla'].some(k => cat.includes(k))) return 'calzado';
+    if (['Abrigo', 'Chaqueta', 'Jersey', 'Sudadera'].some(k => cat.includes(k))) return 'abrigo';
+    return null;
+  };
+
+  const _preguntarEstado = (
+    hayEnUso: boolean,
+    hayAMedias: boolean,
+  ): Promise<'en_uso' | 'a_medias' | 'cualquiera' | 'normal'> =>
+    new Promise(resolve => {
+      if (hayEnUso) {
+        Alert.alert(
+          'Llevas algo puesto',
+          '¿Completamos el outfit con lo que llevas puesto?',
+          [
+            { text: 'Completar mi look',  onPress: () => resolve('en_uso') },
+            { text: 'Me da igual',         onPress: () => resolve('cualquiera') },
+            { text: 'Solo ropa limpia',    onPress: () => resolve('normal') },
+          ],
+        );
+      } else if (hayAMedias) {
+        Alert.alert(
+          'Tienes ropa a medias',
+          '¿Quieres usarla para terminar de ensuciarlo?',
+          [
+            { text: 'Sí, usar lo de a medias', onPress: () => resolve('a_medias') },
+            { text: 'Me da igual',              onPress: () => resolve('cualquiera') },
+            { text: 'Solo ropa limpia',         onPress: () => resolve('normal') },
+          ],
+        );
+      } else {
+        resolve('normal');
+      }
+    });
 
   // 2. EL MOTOR DE REGLAS (GENERAR OUTFIT)
   const generarOutfit = async (climaForzado?: { temp: number; descripcion: string; tipo: string }) => {
@@ -76,55 +115,79 @@ export const useGeneradorOutfits = () => {
         return;
       }
 
-      // Usamos todo el armario como pool — el evento se usa solo para nombrar el outfit
-      const partesSuperiores = ropa.filter(p =>
-        p.categoria.includes('Top') || p.categoria.includes('Camisa') ||
-        p.categoria.includes('Camiseta') || p.categoria.includes('Blusa')
-      );
-      const partesInferiores = ropa.filter(p =>
-        p.categoria.includes('Pantalón') || p.categoria.includes('Falda') ||
-        p.categoria.includes('Vaquero')
-      );
-      const vestidos = ropa.filter(p => p.categoria.includes('Vestido'));
+      // ── Preguntar según el estado de las prendas ─────────────────
+      const enUso   = ropa.filter(p => p.estado === 'En uso');
+      const aMedias = ropa.filter(p => p.estado === 'A medias');
+      const limpia  = ropa.filter(p => p.estado === 'Limpio' || !p.estado);
 
-      const puedeUsarVestido = vestidos.length > 0;
-      const puedeUsarConjunto = partesSuperiores.length > 0 && partesInferiores.length > 0;
+      const preferencia = await _preguntarEstado(enUso.length > 0, aMedias.length > 0);
 
-      if (!puedeUsarVestido && !puedeUsarConjunto) {
-        Alert.alert("Armario incompleto", "Necesitas al menos un Vestido, o una Parte Superior y una Parte Inferior guardadas en la app.");
-        return;
+      // prendas que DEBEN aparecer en el outfit (slot fijado)
+      const fijadas: any[] = preferencia === 'en_uso' ? enUso : [];
+
+      // pool del que se elige aleatoriamente para los slots no fijados
+      let pool: any[];
+      switch (preferencia) {
+        case 'en_uso':    pool = limpia; break;
+        case 'a_medias':  pool = [...aMedias, ...limpia]; break;
+        case 'cualquiera': pool = ropa.filter(p => p.estado !== 'Sucio'); break;
+        default:          pool = limpia;
       }
 
-      const zapatos = ropa.filter(p =>
-        p.categoria.includes('Zapato') || p.categoria.includes('Calzado') || p.categoria.includes('Zapatillas')
-      );
-      const prendasAbrigo = ropa.filter(p =>
-        p.categoria.includes('Abrigo') || p.categoria.includes('Chaqueta') ||
-        p.categoria.includes('Jersey') || p.categoria.includes('Sudadera')
-      );
+      // slot → prenda fijada (la primera de cada slot gana)
+      const slotFijo: Record<string, any> = {};
+      fijadas.forEach(p => {
+        const s = _slotDe(p.categoria);
+        if (s && !slotFijo[s]) slotFijo[s] = p;
+      });
 
-      const elegirAzar = (array: any[]) => array.length > 0 ? array[Math.floor(Math.random() * array.length)] : null;
+      const azar = (arr: any[]) => arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : null;
+      const deslot = (slot: string) => pool.filter(p => _slotDe(p.categoria) === slot);
+      const elegir = (slot: string) => slotFijo[slot] ?? azar(deslot(slot));
 
-      let outfit: any = {
-        clima: clima,
-        calzado: elegirAzar(zapatos),
-        abrigo: null
-      };
+      // ── Armar outfit ──────────────────────────────────────────────
+      let superior: any = null;
+      let inferior: any = null;
 
-      if (clima.tipo === 'Frío' || clima.tipo === 'Entretiempo') {
-        outfit.abrigo = elegirAzar(prendasAbrigo);
-      }
-
-      // Si tiene vestidos y conjuntos, elige al azar. Si solo tiene uno, usa ese.
-      if (puedeUsarVestido && (!puedeUsarConjunto || Math.random() > 0.5)) {
-          outfit.superior = elegirAzar(vestidos);
-          outfit.inferior = null; 
+      if (slotFijo['superior']) {
+        superior = slotFijo['superior'];
+        inferior = superior.categoria.includes('Vestido')
+          ? null
+          : elegir('inferior');
       } else {
-          outfit.superior = elegirAzar(partesSuperiores);
-          outfit.inferior = elegirAzar(partesInferiores);
+        const vestidosPool   = pool.filter(p => p.categoria.includes('Vestido'));
+        const superioresPool = pool.filter(p =>
+          p.categoria.includes('Top') || p.categoria.includes('Camisa') ||
+          p.categoria.includes('Camiseta') || p.categoria.includes('Blusa')
+        );
+        const inferioresPool = pool.filter(p =>
+          p.categoria.includes('Pantalón') || p.categoria.includes('Falda') ||
+          p.categoria.includes('Vaquero')
+        );
+
+        const puedeVestido  = vestidosPool.length > 0;
+        const puedeConjunto = superioresPool.length > 0 && inferioresPool.length > 0;
+
+        if (!puedeVestido && !puedeConjunto) {
+          Alert.alert("Armario incompleto", "Con la ropa disponible no hay suficiente para hacer un outfit.");
+          return;
+        }
+
+        if (puedeVestido && (!puedeConjunto || Math.random() > 0.5)) {
+          superior = azar(vestidosPool);
+          inferior = null;
+        } else {
+          superior = azar(superioresPool);
+          inferior = slotFijo['inferior'] ?? azar(inferioresPool);
+        }
       }
 
-      setOutfitGenerado(outfit);
+      const calzado = elegir('calzado');
+      const abrigo  = (clima.tipo === 'Frío' || clima.tipo === 'Entretiempo')
+        ? elegir('abrigo')
+        : null;
+
+      setOutfitGenerado({ clima, superior, inferior, calzado, abrigo });
 
     } catch (error: any) {
       Alert.alert('Error', error.message);
@@ -173,6 +236,29 @@ export const useGeneradorOutfits = () => {
 
       if (errorIntermedia) throw errorIntermedia;
 
+      // Marcar las prendas del outfit como "En uso"
+      await supabase
+        .from('prendas')
+        .update({ estado: 'En uso' })
+        .in('id', prendasElegidas);
+
+      // Marcar como favorita cualquier prenda que supere 3 usos en outfits
+      await Promise.all(
+        prendasElegidas.map(async (id_prenda) => {
+          const { count } = await supabase
+            .from('outfit_prendas')
+            .select('*', { count: 'exact', head: true })
+            .eq('id_prenda', id_prenda);
+
+          if (count !== null && count > 3) {
+            await supabase
+              .from('prendas')
+              .update({ es_favorito: true })
+              .eq('id', id_prenda);
+          }
+        })
+      );
+
       Alert.alert('¡Outfit Guardado!', 'Este conjunto se ha guardado en tu colección.');
 
     } catch (error: any) {
@@ -182,5 +268,58 @@ export const useGeneradorOutfits = () => {
     }
   };
 
-  return { loading, climaActual, outfitGenerado, generarOutfit, obtenerClima, guardarOutfit, calcularClimaDesdeTemp };
+  const guardarOutfitManual = async (nombre: string, idsSeleccionadas: string[]): Promise<boolean> => {
+    if (idsSeleccionadas.length === 0) return false;
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Debes iniciar sesión.");
+
+      const { data: nuevoOutfit, error: errorOutfit } = await supabase
+        .from('outfits')
+        .insert({
+          id_usuario: user.id,
+          nombre: nombre.trim() || 'Look Manual',
+          clima_ideal: 'Cualquiera',
+          evento_ideal: 'Manual',
+        })
+        .select()
+        .single();
+
+      if (errorOutfit) throw errorOutfit;
+
+      const { error: errorIntermedia } = await supabase
+        .from('outfit_prendas')
+        .insert(idsSeleccionadas.map(id_prenda => ({ id_outfit: nuevoOutfit.id, id_prenda })));
+
+      if (errorIntermedia) throw errorIntermedia;
+
+      await supabase
+        .from('prendas')
+        .update({ estado: 'En uso' })
+        .in('id', idsSeleccionadas);
+
+      await Promise.all(
+        idsSeleccionadas.map(async (id_prenda) => {
+          const { count } = await supabase
+            .from('outfit_prendas')
+            .select('*', { count: 'exact', head: true })
+            .eq('id_prenda', id_prenda);
+          if (count !== null && count > 3) {
+            await supabase.from('prendas').update({ es_favorito: true }).eq('id', id_prenda);
+          }
+        })
+      );
+
+      Alert.alert('¡Look Guardado!', 'Tu conjunto se ha guardado en tu colección.');
+      return true;
+    } catch (error: any) {
+      Alert.alert('Error', 'No se pudo guardar el outfit: ' + error.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { loading, climaActual, outfitGenerado, generarOutfit, obtenerClima, guardarOutfit, guardarOutfitManual, calcularClimaDesdeTemp };
 };

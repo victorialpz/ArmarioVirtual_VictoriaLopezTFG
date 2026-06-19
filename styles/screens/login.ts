@@ -19,7 +19,7 @@ const _screen = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#E2E8F0',
     fontSize: 16,
   },
   botonPrincipal: {

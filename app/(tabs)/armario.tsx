@@ -54,9 +54,9 @@ export default function ArmarioScreen() {
                             <View style={styles.zonaBarra}>
                                 <View style={styles.barraPerchas} />
                                 <View style={styles.filaPerchas}>
-                                    <MaterialCommunityIcons name="hanger" size={24} color="#5c4033" />
-                                    <MaterialCommunityIcons name="hanger" size={24} color="#5c4033" />
-                                    <MaterialCommunityIcons name="hanger" size={24} color="#5c4033" />
+                                    <MaterialCommunityIcons name="hanger" size={24} color="#1A2024" />
+                                    <MaterialCommunityIcons name="hanger" size={24} color="#1A2024" />
+                                    <MaterialCommunityIcons name="hanger" size={24} color="#1A2024" />
                                 </View>
                             </View>
                             <View style={styles.zonaBaldas}>
@@ -82,7 +82,7 @@ export default function ArmarioScreen() {
                         <View style={styles.flowContainer}>
                             {/* Cambiamos 'sweater' por 'tshirt-crew' */}
                             <MaterialCommunityIcons name="tshirt-crew" size={50} color="#888" />
-                            <MaterialCommunityIcons name="arrow-right-thick" size={30} color="#5c4033" style={styles.arrow} />
+                            <MaterialCommunityIcons name="arrow-right-thick" size={30} color="#1A2024" style={styles.arrow} />
                             <MaterialCommunityIcons name="layers" size={50} color="#888" />
                         </View>
                         <Text style={styles.cardText}>
@@ -96,7 +96,7 @@ export default function ArmarioScreen() {
                         <View style={styles.flowContainer}>
                             {/* Usamos el mismo icono genérico de ropa para sustituir 'jeans' */}
                             <MaterialCommunityIcons name="tshirt-crew" size={50} color="#888" />
-                            <MaterialCommunityIcons name="arrow-right-thick" size={30} color="#5c4033" style={styles.arrow} />
+                            <MaterialCommunityIcons name="arrow-right-thick" size={30} color="#1A2024" style={styles.arrow} />
                             <MaterialCommunityIcons name="hanger" size={50} color="#888" />
                         </View>
                         <Text style={styles.cardText}>

@@ -1,10 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Link, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import React from 'react';
-import { Pressable } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-//import { IconSymbol } from '@/components/ui/icon-symbol';
+import { HeaderAvatar } from '@/components/HeaderAvatar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
@@ -13,20 +12,14 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#5c4033',
+        tabBarActiveTintColor: '#1A2024',
         tabBarInactiveTintColor: 'gray',
         headerShown: true,
-        headerStyle: { backgroundColor: '#5c4033' },
+        headerStyle: { backgroundColor: '#1A2024' },
         headerTintColor: '#fff',
-        headerTitleAlign: 'left', // Añade esta línea
+        headerTitleAlign: 'left',
         tabBarButton: HapticTab,
-        headerRight: () => (
-          <Link href="/perfil" asChild>
-            <Pressable style={{ marginRight: 15 }}>
-              <MaterialCommunityIcons name="account-circle" size={28} color="#fff" />
-            </Pressable>
-          </Link>
-        ),
+        headerRight: () => <HeaderAvatar />,
       }}>
 
       <Tabs.Screen

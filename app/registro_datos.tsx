@@ -82,7 +82,7 @@ export default function RegistroDatosScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingVertical: 40 }}>
       <View style={styles.header}>
-        <MaterialCommunityIcons name="account-plus" size={60} color="#5c4033" />
+        <MaterialCommunityIcons name="account-plus" size={60} color="#1A2024" />
         <Text style={styles.titulo}>Crea tu cuenta</Text>
       </View>
 
@@ -98,7 +98,7 @@ export default function RegistroDatosScreen() {
         <TextInput style={styles.input} placeholder="Teléfono" value={formData.telefono} onChangeText={(t) => setFormData({...formData, telefono: t})} keyboardType="phone-pad" />
 
         {loading ? (
-          <ActivityIndicator size="large" color="#5c4033" />
+          <ActivityIndicator size="large" color="#1A2024" />
         ) : (
           <TouchableOpacity style={styles.boton} onPress={handleRegistroCompleto}>
             <Text style={styles.textoBoton}>Registrarme y empezar</Text>

@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { styles } from '@/styles/screens/outfit';
 import { useGeneradorOutfits } from '../../hooks/useGeneradorOutfits';
 import { supabase } from '../../lib/supabase';
@@ -9,17 +9,18 @@ import { ESTILOS_COMUNES } from '../../constants/opciones';
 
 export default function OutfitScreen() {
     // Estado para controlar qué pestaña vemos
-    const [vistaActiva, setVistaActiva] = useState<'generador' | 'guardados'>('generador');
+    const [vistaActiva, setVistaActiva] = useState<'generador' | 'guardados' | 'crear'>('generador');
     
     // Estados del Generador IA
     const [eventoActivo, setEventoActivo] = useState<string>('Diario');
-    const { loading, climaActual, outfitGenerado, generarOutfit, guardarOutfit, calcularClimaDesdeTemp } = useGeneradorOutfits();
+    const { loading, climaActual, outfitGenerado, generarOutfit, guardarOutfit, guardarOutfitManual, calcularClimaDesdeTemp } = useGeneradorOutfits();
     const [modoTemp, setModoTemp] = useState<'gps' | 'manual'>('gps');
     const [tempManual, setTempManual] = useState(20);
+    const [localidadManual, setLocalidadManual] = useState('');
 
     const handleGenerar = () => {
         if (modoTemp === 'manual') {
-            generarOutfit(calcularClimaDesdeTemp(tempManual));
+            generarOutfit(calcularClimaDesdeTemp(tempManual, localidadManual));
         } else {
             generarOutfit();
         }
@@ -31,12 +32,16 @@ export default function OutfitScreen() {
     const [outfitsGuardados, setOutfitsGuardados] = useState<any[]>([]);
     const [loadingGuardados, setLoadingGuardados] = useState(false);
 
+    // Estados del Creador Manual
+    const [prendasDisponibles, setPrendasDisponibles] = useState<any[]>([]);
+    const [prendasSeleccionadas, setPrendasSeleccionadas] = useState<Set<string>>(new Set());
+    const [nombreManual, setNombreManual] = useState('');
+
     // Cargar los outfits cuando entramos en la pestaña "Guardados"
     useFocusEffect(
         useCallback(() => {
-            if (vistaActiva === 'guardados') {
-                cargarGuardados();
-            }
+            if (vistaActiva === 'guardados') cargarGuardados();
+            if (vistaActiva === 'crear') cargarPrendasDisponibles();
         }, [vistaActiva])
     );
 
@@ -89,9 +94,37 @@ export default function OutfitScreen() {
         );
     };
 
+    const cargarPrendasDisponibles = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+            .from('prendas')
+            .select('id, nombre, imagen_url, categoria')
+            .eq('id_usuario', user.id)
+            .order('fecha_registro', { ascending: false });
+        if (data) setPrendasDisponibles(data);
+    };
+
+    const toggleSeleccionPrenda = (id: string) => {
+        setPrendasSeleccionadas(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleGuardarManual = async () => {
+        const exito = await guardarOutfitManual(nombreManual, [...prendasSeleccionadas]);
+        if (exito) {
+            setPrendasSeleccionadas(new Set());
+            setNombreManual('');
+            setVistaActiva('guardados');
+        }
+    };
+
     const renderOutfitGuardado = ({ item }: { item: any }) => {
-        // Extraemos las imágenes de la relación compleja de Supabase
-        const prendasDelLook = item.outfit_prendas.map((op: any) => op.prendas).filter(Boolean);
+        const prendasDelLook = item.outfit_prendas.map((op: any) => op.prendas);
 
         return (
             <View style={styles.cardGuardado}>
@@ -110,11 +143,18 @@ export default function OutfitScreen() {
 
                 {/* Mini Moodboard del conjunto */}
                 <View style={styles.miniMoodboard}>
-                    {prendasDelLook.map((prenda: any, index: number) => (
-                        <TouchableOpacity key={index} style={styles.miniPrendaBox} onPress={() => setImagenAmpliada(prenda.imagen_url)} activeOpacity={0.8}>
-                            <Image source={{ uri: prenda.imagen_url }} style={styles.miniImagen} resizeMode="contain" />
-                        </TouchableOpacity>
-                    ))}
+                    {prendasDelLook.map((prenda: any, index: number) =>
+                        prenda ? (
+                            <TouchableOpacity key={index} style={styles.miniPrendaBox} onPress={() => setImagenAmpliada(prenda.imagen_url)} activeOpacity={0.8}>
+                                <Image source={{ uri: prenda.imagen_url }} style={styles.miniImagen} resizeMode="contain" />
+                            </TouchableOpacity>
+                        ) : (
+                            <View key={index} style={[styles.miniPrendaBox, styles.prendaEliminadaBox]}>
+                                <MaterialCommunityIcons name="hanger" size={26} color="#ccc" />
+                                <Text style={styles.prendaEliminadaTexto}>Prenda{'\n'}eliminada</Text>
+                            </View>
+                        )
+                    )}
                 </View>
             </View>
         );
@@ -136,7 +176,15 @@ export default function OutfitScreen() {
                     onPress={() => setVistaActiva('generador')}
                 >
                     <Text style={[styles.tabText, vistaActiva === 'generador' && styles.tabTextActiva]}>
-                        Generar Nuevo
+                        Generar
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.tab, vistaActiva === 'crear' && styles.tabActiva]}
+                    onPress={() => setVistaActiva('crear')}
+                >
+                    <Text style={[styles.tabText, vistaActiva === 'crear' && styles.tabTextActiva]}>
+                        Crear
                     </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -144,7 +192,7 @@ export default function OutfitScreen() {
                     onPress={() => setVistaActiva('guardados')}
                 >
                     <Text style={[styles.tabText, vistaActiva === 'guardados' && styles.tabTextActiva]}>
-                        Looks Guardados
+                        Guardados
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -157,7 +205,7 @@ export default function OutfitScreen() {
                 <ScrollView showsVerticalScrollIndicator={false}>
                     {climaActual ? (
                         <View style={styles.climaInfo}>
-                            <MaterialCommunityIcons name={climaActual.temp > 20 ? "white-balance-sunny" : "weather-cloudy"} size={20} color="#5c4033" />
+                            <MaterialCommunityIcons name={climaActual.temp > 20 ? "white-balance-sunny" : "weather-cloudy"} size={20} color="#1A2024" />
                             <Text style={styles.textoClima}>Hoy hace {climaActual.temp}ºC. Buscando capas para el {climaActual.tipo.toLowerCase()}...</Text>
                         </View>
                     ) : null}
@@ -182,15 +230,24 @@ export default function OutfitScreen() {
                             </TouchableOpacity>
                         </View>
                         {modoTemp === 'manual' && (
-                            <View style={styles.tempManualRow}>
-                                <TouchableOpacity style={styles.tempBtn} onPress={() => setTempManual(t => Math.max(-10, t - 1))}>
-                                    <Text style={styles.tempBtnTexto}>−</Text>
-                                </TouchableOpacity>
-                                <Text style={styles.tempValor}>{tempManual}°C</Text>
-                                <TouchableOpacity style={styles.tempBtn} onPress={() => setTempManual(t => Math.min(45, t + 1))}>
-                                    <Text style={styles.tempBtnTexto}>+</Text>
-                                </TouchableOpacity>
-                            </View>
+                            <>
+                                <View style={styles.tempManualRow}>
+                                    <TouchableOpacity style={styles.tempBtn} onPress={() => setTempManual(t => Math.max(-10, t - 1))}>
+                                        <Text style={styles.tempBtnTexto}>−</Text>
+                                    </TouchableOpacity>
+                                    <Text style={styles.tempValor}>{tempManual}°C</Text>
+                                    <TouchableOpacity style={styles.tempBtn} onPress={() => setTempManual(t => Math.min(45, t + 1))}>
+                                        <Text style={styles.tempBtnTexto}>+</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <TextInput
+                                    style={styles.localidadInput}
+                                    placeholder="Localidad (ej: Madrid)"
+                                    placeholderTextColor="#999"
+                                    value={localidadManual}
+                                    onChangeText={setLocalidadManual}
+                                />
+                            </>
                         )}
                     </View>
 
@@ -215,7 +272,7 @@ export default function OutfitScreen() {
                     <View style={styles.outfitCard}>
                         {loading ? (
                             <View style={styles.loadingContainer}>
-                                <ActivityIndicator size="large" color="#5c4033" />
+                                <ActivityIndicator size="large" color="#1A2024" />
                                 <Text style={styles.textoCargando}>Buscando en tu armario...</Text>
                             </View>
                         ) : outfitGenerado ? (
@@ -273,7 +330,7 @@ export default function OutfitScreen() {
 
                         {outfitGenerado && (
                             <TouchableOpacity style={styles.botonSecundario} onPress={() => guardarOutfit(eventoActivo)} disabled={loading}>
-                                <MaterialCommunityIcons name="heart-outline" size={24} color="#5c4033" style={styles.iconoBoton} />
+                                <MaterialCommunityIcons name="heart-outline" size={24} color="#1A2024" style={styles.iconoBoton} />
                                 <Text style={styles.textoBotonSecundario}>Guardar Outfit</Text>
                             </TouchableOpacity>
                         )}
@@ -281,14 +338,14 @@ export default function OutfitScreen() {
                     <View style={{ height: 40 }} />
                 </ScrollView>
 
-            ) : (
+            ) : vistaActiva === 'guardados' ? (
                 // ----------------------------------------------------
                 // VISTA 2: LISTA DE LOOKS GUARDADOS
                 // ----------------------------------------------------
                 <View style={{ flex: 1 }}>
                     {loadingGuardados ? (
                         <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color="#5c4033" />
+                            <ActivityIndicator size="large" color="#1A2024" />
                         </View>
                     ) : (
                         <FlatList
@@ -304,6 +361,72 @@ export default function OutfitScreen() {
                                 </View>
                             }
                         />
+                    )}
+                </View>
+            ) : (
+                // ----------------------------------------------------
+                // VISTA 3: CREADOR MANUAL
+                // ----------------------------------------------------
+                <View style={{ flex: 1 }}>
+                    <View style={{ paddingHorizontal: 20, paddingTop: 15, paddingBottom: 10 }}>
+                        <TextInput
+                            style={styles.inputNombreLook}
+                            placeholder="Nombre del look (opcional)"
+                            placeholderTextColor="#999"
+                            value={nombreManual}
+                            onChangeText={setNombreManual}
+                            maxLength={50}
+                        />
+                        <Text style={styles.textoSeleccion}>
+                            {prendasSeleccionadas.size === 0
+                                ? 'Toca las prendas para añadirlas al look'
+                                : `${prendasSeleccionadas.size} prenda${prendasSeleccionadas.size > 1 ? 's' : ''} seleccionada${prendasSeleccionadas.size > 1 ? 's' : ''}`
+                            }
+                        </Text>
+                    </View>
+                    <FlatList
+                        data={prendasDisponibles}
+                        keyExtractor={(item) => item.id}
+                        numColumns={3}
+                        contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 120 }}
+                        renderItem={({ item }) => {
+                            const seleccionada = prendasSeleccionadas.has(item.id);
+                            return (
+                                <TouchableOpacity
+                                    style={[styles.selectorCard, seleccionada && styles.selectorCardActiva]}
+                                    onPress={() => toggleSeleccionPrenda(item.id)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Image source={{ uri: item.imagen_url }} style={styles.selectorImagen} resizeMode="contain" />
+                                    {seleccionada && (
+                                        <View style={styles.selectorCheckOverlay}>
+                                            <MaterialCommunityIcons name="check-circle" size={24} color="#1A2024" />
+                                        </View>
+                                    )}
+                                    <Text style={styles.selectorNombre} numberOfLines={1}>{item.nombre}</Text>
+                                </TouchableOpacity>
+                            );
+                        }}
+                        ListEmptyComponent={
+                            <View style={styles.ropaContainerPlaceholder}>
+                                <MaterialCommunityIcons name="hanger" size={60} color="#ccc" />
+                                <Text style={styles.textoVacio}>Aún no tienes prendas en tu armario.</Text>
+                            </View>
+                        }
+                    />
+                    {prendasSeleccionadas.size > 0 && (
+                        <View style={styles.barraGuardar}>
+                            <TouchableOpacity
+                                style={styles.botonPrimario}
+                                onPress={handleGuardarManual}
+                                disabled={loading}
+                            >
+                                <MaterialCommunityIcons name="heart-outline" size={22} color="#fff" style={styles.iconoBoton} />
+                                <Text style={styles.textoBotonPrimario}>
+                                    Guardar look ({prendasSeleccionadas.size} {prendasSeleccionadas.size === 1 ? 'prenda' : 'prendas'})
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     )}
                 </View>
             )}
