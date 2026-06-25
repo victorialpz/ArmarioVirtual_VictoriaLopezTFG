@@ -69,7 +69,7 @@ export default function RegistroDatosScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingVertical: 40 }}>
       <View style={styles.header}>
-        <MaterialCommunityIcons name="account-plus" size={60} color="#5c4033" />
+        <MaterialCommunityIcons name="account-plus" size={60} color="#1A2024" />
         <Text style={styles.titulo}>Crea tu cuenta</Text>
       </View>
 
@@ -85,7 +85,7 @@ export default function RegistroDatosScreen() {
         <TextInput style={styles.input} placeholder="Teléfono" value={formData.telefono} onChangeText={(t) => setFormData({...formData, telefono: t})} keyboardType="phone-pad" />
 
         {loading ? (
-          <ActivityIndicator size="large" color="#5c4033" />
+          <ActivityIndicator size="large" color="#1A2024" />
         ) : (
           <TouchableOpacity style={styles.boton} onPress={handleRegistroCompleto}>
             <Text style={styles.textoBoton}>Registrarme y empezar</Text>
@@ -97,12 +97,12 @@ export default function RegistroDatosScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9f5f3', padding: 20 },
+  container: { flex: 1, backgroundColor: '#F4F6F8', padding: 20 },
   header: { alignItems: 'center', marginBottom: 30 },
   titulo: { fontSize: 28, fontWeight: 'bold', color: '#333' },
   form: { width: '100%' },
-  label: { fontSize: 14, fontWeight: 'bold', color: '#5c4033', marginBottom: 8, marginTop: 15 },
+  label: { fontSize: 14, fontWeight: 'bold', color: '#1A2024', marginBottom: 8, marginTop: 15 },
   input: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 15, borderWidth: 1, borderColor: '#ddd' },
-  boton: { backgroundColor: '#5c4033', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 20 },
+  boton: { backgroundColor: '#1A2024', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 20 },
   textoBoton: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

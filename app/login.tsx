@@ -40,7 +40,7 @@ export default function LoginScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <MaterialCommunityIcons name="hanger" size={80} color="#5c4033" />
+                    <MaterialCommunityIcons name="hanger" size={80} color="#1A2024" />
                     <Text style={styles.titulo}>Armario Virtual</Text>
                     <Text style={styles.subtitulo}>Tu ropa, organizada e inteligente</Text>
                 </View>
@@ -63,7 +63,7 @@ export default function LoginScreen() {
                     />
 
                     {loading ? (
-                        <ActivityIndicator size="large" color="#5c4033" style={{ marginTop: 20 }} />
+                        <ActivityIndicator size="large" color="#1A2024" style={{ marginTop: 20 }} />
                     ) : (
                         <>
                             <TouchableOpacity style={styles.botonPrincipal} onPress={iniciarSesion}>
@@ -83,7 +83,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9f5f3',
+        backgroundColor: '#F4F6F8',
         padding: 20,
         justifyContent: 'center',
     },
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     botonPrincipal: {
-        backgroundColor: '#5c4033',
+        backgroundColor: '#1A2024',
         padding: 15,
         borderRadius: 10,
         alignItems: 'center',
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     textoBotonSecundario: {
-        color: '#5c4033',
+        color: '#1A2024',
         fontSize: 16,
         fontWeight: '600',
     },
