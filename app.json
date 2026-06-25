@@ -28,6 +28,21 @@
     "plugins": [
       "expo-router",
       [
+        "expo-media-library",
+        {
+          "photosPermission": "Necesitamos acceso a tu galería para guardar outfits.",
+          "savePhotosPermission": "Necesitamos permiso para guardar imágenes en tu galería.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Necesitamos acceso a tu galería para subir fotos de prendas.",
+          "cameraPermission": "Necesitamos acceso a tu cámara para fotografiar prendas."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
