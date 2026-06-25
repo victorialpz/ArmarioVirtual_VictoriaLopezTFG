@@ -230,9 +230,20 @@ export const useGeneradorOutfits = () => {
 
       const calzado = elegirCompat('calzado');
       if (calzado) yaElegidas.push(calzado);
-      const abrigo  = (clima.tipo === 'Frío' || clima.tipo === 'Entretiempo')
-        ? elegirCompat('abrigo')
-        : null;
+
+      // Frío → puede ser Abrigo/Chaqueta o Jersey/Sudadera
+      // Entretiempo → solo Jersey/Sudadera (capa ligera)
+      // Calor → nada
+      let abrigo: any = null;
+      if (clima.tipo === 'Frío') {
+        abrigo = elegirCompat('abrigo');
+      } else if (clima.tipo === 'Entretiempo') {
+        const capasLigeras = pool.filter(p =>
+          (p.categoria.includes('Jersey') || p.categoria.includes('Sudadera')) &&
+          yaElegidas.every(e => e && _colorCompatible(p, e))
+        );
+        abrigo = azar(capasLigeras.length > 0 ? capasLigeras : []);
+      }
 
       setOutfitGenerado({ clima, superior, inferior, calzado, abrigo });
 
