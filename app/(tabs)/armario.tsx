@@ -112,7 +112,6 @@ function Stepper({
 // ── Pantalla ──────────────────────────────────────────────────────────
 
 export default function ArmarioScreen() {
-  const [vistaActiva, setVistaActiva]           = useState<'organizar' | 'visual'>('organizar');
   const [modalConfigVisible, setModalConfigVisible] = useState(false);
   const [configEdit, setConfigEdit]             = useState<ArmarioConfig>(CONFIG_DEFECTO);
   const [guardando, setGuardando]               = useState(false);
@@ -172,26 +171,6 @@ export default function ArmarioScreen() {
           <Text style={styles.subtitulo}>Optimización y organización espacial</Text>
         </View>
 
-        {/* Tabs */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, vistaActiva === 'organizar' && styles.tabActiva]}
-            onPress={() => setVistaActiva('organizar')}
-          >
-            <Text style={[styles.tabText, vistaActiva === 'organizar' && styles.tabTextActiva]}>
-              ¿Cómo organizar?
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, vistaActiva === 'visual' && styles.tabActiva]}
-            onPress={() => setVistaActiva('visual')}
-          >
-            <Text style={[styles.tabText, vistaActiva === 'visual' && styles.tabTextActiva]}>
-              Distribución
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Banner de configuración */}
         <TouchableOpacity style={styles.bannerConfig} onPress={abrirConfig} activeOpacity={0.7}>
           <MaterialCommunityIcons name="wardrobe-outline" size={22} color="#5E7E91" />
@@ -214,10 +193,7 @@ export default function ArmarioScreen() {
           )}
         </TouchableOpacity>
 
-        {/* ── Tab: ¿Cómo organizar? ──────────────────────────────── */}
-        {vistaActiva === 'organizar' && (
-          <>
-            {/* Resumen de conteo */}
+        {/* Resumen de conteo */}
             {total > 0 && (
               <View style={styles.resumenBar}>
                 <View style={styles.resumenItem}>
@@ -384,85 +360,6 @@ export default function ArmarioScreen() {
                 </View>
               );
             })}
-          </>
-        )}
-
-        {/* ── Tab: Distribución ─────────────────────────────────── */}
-        {vistaActiva === 'visual' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {configurado ? resumenTipo : 'Tu armario'}
-            </Text>
-            <Text style={styles.sectionSubtitle}>
-              {configurado
-                ? `${config.num_barras} barra${config.num_barras !== 1 ? 's' : ''} de ${config.longitud_barra_cm} cm · ${config.num_baldas} balda${config.num_baldas !== 1 ? 's' : ''} · ${config.num_cajones} cajón${config.num_cajones !== 1 ? 'es' : ''}${config.tiene_zapatero ? ` · zapatero (${config.capacidad_zapatero} pares)` : ''}`
-                : 'Configura tu armario para ver la distribución exacta'
-              }
-            </Text>
-
-            {/* Ilustración dinámica */}
-            <View style={styles.armarioGrafico}>
-              <View style={styles.puertaArmario}>
-                <View style={styles.tirador} />
-              </View>
-              <View style={styles.interiorArmario}>
-                {/* Zona barra */}
-                <View style={[styles.zonaBarra, { flex: 2 }]}>
-                  <View style={styles.barraPerchas} />
-                  <View style={styles.filaPerchas}>
-                    {Array.from({ length: Math.min(config.num_barras * 3, 9) }).map((_, i) => (
-                      <MaterialCommunityIcons key={i} name="hanger" size={20} color="#1A2024" />
-                    ))}
-                  </View>
-                  {configurado && nColgar > 0 && (
-                    <Text style={{ textAlign: 'center', fontSize: 9, color: '#94A3B8', marginTop: 2 }}>
-                      {nColgar}/{barraMax} prendas
-                    </Text>
-                  )}
-                </View>
-                {/* Baldas */}
-                {config.num_baldas > 0 && (
-                  <View style={[styles.zonaBaldas, { flex: 1 }]}>
-                    {Array.from({ length: Math.min(config.num_baldas, 4) }).map((_, i) => (
-                      <View key={i} style={styles.balda} />
-                    ))}
-                  </View>
-                )}
-                {/* Cajones */}
-                {config.num_cajones > 0 && (
-                  <View style={[styles.zonaCajon, { flex: 0.8 }]}>
-                    <View style={styles.cajon}>
-                      <View style={styles.tiradorCajon} />
-                    </View>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Leyenda */}
-            {total > 0 && (
-              <View style={{ marginTop: 16 }}>
-                {ORDEN_GRUPOS.map(metodo => {
-                  const n = grupos[metodo].length;
-                  if (n === 0) return null;
-                  const meta = METODO_META[metodo];
-                  return (
-                    <View key={metodo} style={styles.cardConsejo}>
-                      <View style={styles.flowContainer}>
-                        <MaterialCommunityIcons name={meta.icono as any} size={26} color={meta.color} />
-                        <MaterialCommunityIcons name="arrow-right-thick" size={18} color="#CBD5E0" style={styles.arrow} />
-                        <Text style={{ fontSize: 20, fontWeight: 'bold', color: meta.color }}>{n}</Text>
-                      </View>
-                      <Text style={styles.cardText}>
-                        {n} {n === 1 ? 'prenda' : 'prendas'} para {meta.label.toLowerCase()}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-        )}
 
         <View style={{ height: 50 }} />
       </ScrollView>

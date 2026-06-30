@@ -1,10 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { styles } from '@/styles/screens/login';
+import { ActivityIndicator, Alert, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
-import { logger } from '@/lib/logger';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
@@ -16,7 +14,6 @@ export default function LoginScreen() {
         Keyboard.dismiss(); 
         
         if (!email || !password) {
-            logger.warn('LoginScreen', 'Faltan credenciales para iniciar sesión', { emailProvided: !!email, passwordProvided: !!password });
             Alert.alert('Datos incompletos', 'Por favor, escribe tu correo y contraseña para entrar.');
             return; 
         }
@@ -28,10 +25,8 @@ export default function LoginScreen() {
         });
 
         if (error) {
-            logger.error('LoginScreen', error, { email });
             Alert.alert('Error al iniciar sesión', error.message);
         } else {
-            logger.info('LoginScreen', 'Inicio de sesión correcto', { email });
             router.replace('/(tabs)');
         }
         setLoading(false);
@@ -85,3 +80,61 @@ export default function LoginScreen() {
     );
 }
 
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#F4F6F8',
+        padding: 20,
+        justifyContent: 'center',
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: 50,
+    },
+    titulo: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#333',
+        marginTop: 10,
+    },
+    subtitulo: {
+        fontSize: 16,
+        color: '#666',
+        marginTop: 5,
+    },
+    form: {
+        width: '100%',
+    },
+    input: {
+        backgroundColor: '#fff',
+        padding: 15,
+        borderRadius: 10,
+        marginBottom: 15,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        fontSize: 16,
+    },
+    botonPrincipal: {
+        backgroundColor: '#1A2024',
+        padding: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    textoBotonPrincipal: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    botonSecundario: {
+        padding: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    textoBotonSecundario: {
+        color: '#1A2024',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+});

@@ -2,7 +2,7 @@
 export const TIPOS_TELA = ['Algodón', 'Lana', 'Poliéster', 'Lino', 'Seda', 'Vaquero/Denim', 'Cuero', 'Gasa', 'Otro'];
 export const ESTILOS_COMUNES = ['Diario', 'Casual', 'Elegante', 'Fiesta', 'Deportivo', 'Trabajo', 'Bohemio', 'Minimalista'];
 export const OPCIONES_CATEGORIA = ['Top / Camiseta', 'Camisa / Blusa', 'Jersey / Sudadera', 'Pantalón', 'Falda', 'Vestido', 'Abrigo / Chaqueta', 'Zapatos / Calzado'];
-export const CATEGORIAS_FILTRO = ['Todas', 'Favoritos', 'Tops', 'Pantalones', 'Vestidos', 'Abrigos', 'Zapatos'];
+export const CATEGORIAS_FILTRO = ['Todas', 'Favoritos', 'Tops', 'Pantalones', 'Faldas', 'Vestidos', 'Abrigos', 'Zapatos'];
 // --- COLORES CON SUS CÓDIGOS VISUALES ---
 export const COLORES_COMUNES = ['Blanco', 'Negro', 'Gris', 'Beige', 'Marrón', 'Azul', 'Rojo', 'Verde', 'Amarillo', 'Naranja', 'Rosa', 'Morado', 'Dorado', 'Plateado'];
 

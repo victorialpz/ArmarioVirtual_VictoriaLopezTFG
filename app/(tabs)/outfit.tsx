@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as MediaLibrary from 'expo-media-library';
 import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import { styles } from '@/styles/screens/outfit';
 import { useGeneradorOutfits } from '../../hooks/useGeneradorOutfits';
 import { supabase } from '../../lib/supabase';
@@ -27,6 +29,28 @@ export default function OutfitScreen() {
     };
 
     const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
+    const [outfitParaDescargar, setOutfitParaDescargar] = useState<any | null>(null);
+    const [guardandoImagen, setGuardandoImagen] = useState(false);
+    const captureViewRef = useRef<ViewShot>(null);
+
+    const descargarOutfit = async () => {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permiso necesario', 'Necesitamos acceso a la galería para guardar el outfit.');
+            return;
+        }
+        try {
+            setGuardandoImagen(true);
+            const uri = await captureViewRef.current!.capture!();
+            await MediaLibrary.saveToLibraryAsync(uri);
+            Alert.alert('¡Guardado!', 'El outfit se ha guardado en tu galería.');
+            setOutfitParaDescargar(null);
+        } catch (e: any) {
+            Alert.alert('Error', 'No se pudo guardar la imagen: ' + e.message);
+        } finally {
+            setGuardandoImagen(false);
+        }
+    };
 
     // Estados de la Galería de Guardados
     const [outfitsGuardados, setOutfitsGuardados] = useState<any[]>([]);
@@ -36,6 +60,7 @@ export default function OutfitScreen() {
     const [prendasDisponibles, setPrendasDisponibles] = useState<any[]>([]);
     const [prendasSeleccionadas, setPrendasSeleccionadas] = useState<Set<string>>(new Set());
     const [nombreManual, setNombreManual] = useState('');
+    const [eventoManual, setEventoManual] = useState('Diario');
 
     // Cargar los outfits cuando entramos en la pestaña "Guardados"
     useFocusEffect(
@@ -115,10 +140,11 @@ export default function OutfitScreen() {
     };
 
     const handleGuardarManual = async () => {
-        const exito = await guardarOutfitManual(nombreManual, [...prendasSeleccionadas]);
+        const exito = await guardarOutfitManual(nombreManual, [...prendasSeleccionadas], eventoManual);
         if (exito) {
             setPrendasSeleccionadas(new Set());
             setNombreManual('');
+            setEventoManual('Diario');
             setVistaActiva('guardados');
         }
     };
@@ -132,13 +158,18 @@ export default function OutfitScreen() {
                     <View>
                         <Text style={styles.nombreLook}>{item.nombre}</Text>
                         <View style={{ flexDirection: 'row', marginTop: 5 }}>
-                            <Text style={styles.tagLook}>{item.evento_ideal}</Text>
-                            <Text style={styles.tagLook}>{item.clima_ideal}</Text>
+                            {item.evento_ideal ? <Text style={styles.tagLook}>{item.evento_ideal}</Text> : null}
+                            {item.clima_ideal && item.clima_ideal !== 'Cualquiera' ? <Text style={styles.tagLook}>{item.clima_ideal}</Text> : null}
                         </View>
                     </View>
-                    <TouchableOpacity onPress={() => eliminarOutfit(item.id)} style={styles.botonBorrar}>
-                        <MaterialCommunityIcons name="trash-can-outline" size={24} color="#d9534f" />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity onPress={() => setOutfitParaDescargar(item)}>
+                            <MaterialCommunityIcons name="download-outline" size={24} color="#5E7E91" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => eliminarOutfit(item.id)} style={styles.botonBorrar}>
+                            <MaterialCommunityIcons name="trash-can-outline" size={24} color="#d9534f" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Mini Moodboard del conjunto */}
@@ -377,6 +408,22 @@ export default function OutfitScreen() {
                             onChangeText={setNombreManual}
                             maxLength={50}
                         />
+                        <Text style={[styles.tituloSeccion, { marginTop: 10, marginBottom: 6 }]}>¿Para qué ocasión?</Text>
+                        <FlatList
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            data={ESTILOS_COMUNES}
+                            keyExtractor={(item) => item}
+                            style={{ marginBottom: 10 }}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[styles.pildoraEvento, eventoManual === item && styles.pildoraActiva]}
+                                    onPress={() => setEventoManual(item)}
+                                >
+                                    <Text style={[styles.textoEvento, eventoManual === item && styles.textoEventoActivo]}>{item}</Text>
+                                </TouchableOpacity>
+                            )}
+                        />
                         <Text style={styles.textoSeleccion}>
                             {prendasSeleccionadas.size === 0
                                 ? 'Toca las prendas para añadirlas al look'
@@ -430,6 +477,57 @@ export default function OutfitScreen() {
                     )}
                 </View>
             )}
+            {/* MODAL DESCARGA OUTFIT */}
+            <Modal visible={!!outfitParaDescargar} animationType="slide" onRequestClose={() => setOutfitParaDescargar(null)}>
+                <View style={{ flex: 1, backgroundColor: '#fff' }}>
+                    <View style={{ paddingTop: 54, paddingHorizontal: 20, paddingBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1A2024' }}>Vista previa</Text>
+                        <TouchableOpacity onPress={() => setOutfitParaDescargar(null)}>
+                            <MaterialCommunityIcons name="close" size={24} color="#666" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView contentContainerStyle={{ padding: 20 }}>
+                        {outfitParaDescargar && (
+                            <ViewShot ref={captureViewRef} options={{ format: 'jpg', quality: 0.95 }} style={{ backgroundColor: '#FAFAF8', borderRadius: 20, padding: 24 }}>
+                                <Text style={{ fontSize: 22, fontWeight: '800', color: '#1A2024', textAlign: 'center', marginBottom: 6 }}>
+                                    {outfitParaDescargar.nombre}
+                                </Text>
+                                <Text style={{ textAlign: 'center', color: '#888', fontSize: 13, marginBottom: 20 }}>
+                                    {outfitParaDescargar.evento_ideal}{outfitParaDescargar.clima_ideal && outfitParaDescargar.clima_ideal !== 'Cualquiera' ? ` · ${outfitParaDescargar.clima_ideal}` : ''}
+                                </Text>
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
+                                    {outfitParaDescargar.outfit_prendas.map((op: any, i: number) =>
+                                        op.prendas ? (
+                                            <View key={i} style={{ width: 130, height: 130, borderRadius: 14, backgroundColor: '#fff', overflow: 'hidden' }}>
+                                                <Image source={{ uri: op.prendas.imagen_url }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+                                            </View>
+                                        ) : null
+                                    )}
+                                </View>
+                                <Text style={{ textAlign: 'center', color: '#ccc', fontSize: 10, marginTop: 20 }}>Armario Virtual</Text>
+                            </ViewShot>
+                        )}
+                    </ScrollView>
+
+                    <View style={{ padding: 20 }}>
+                        <TouchableOpacity
+                            style={{ backgroundColor: '#1A2024', borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', opacity: guardandoImagen ? 0.6 : 1 }}
+                            onPress={descargarOutfit}
+                            disabled={guardandoImagen}
+                        >
+                            {guardandoImagen
+                                ? <ActivityIndicator color="#fff" />
+                                : <>
+                                    <MaterialCommunityIcons name="download" size={20} color="#fff" style={{ marginRight: 8 }} />
+                                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Guardar en galería</Text>
+                                  </>
+                            }
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
             {/* VISOR DE IMAGEN A TAMAÑO REAL */}
             <Modal visible={!!imagenAmpliada} transparent animationType="fade" onRequestClose={() => setImagenAmpliada(null)}>
                 <View style={styles.visorFondo}>

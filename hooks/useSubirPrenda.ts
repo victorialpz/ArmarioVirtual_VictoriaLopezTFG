@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 import { Alert } from 'react-native';
+import { API_BASE } from '@/constants/config';
 import { elegirImagen } from '../lib/elegirImagen';
 import { supabase } from '../lib/supabase';
 
-const API_BASE = "http://192.168.1.135:8000";
 const MI_API_URL = `${API_BASE}/quitar-fondo`;
 const MI_OCR_URL  = `${API_BASE}/leer-etiqueta`;
 

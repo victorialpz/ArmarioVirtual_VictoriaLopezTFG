@@ -1,11 +1,3 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator, Alert, Animated, Dimensions, FlatList, Image,
-  KeyboardAvoidingView, Modal, Platform, ScrollView,
-  Text, TextInput, TouchableOpacity, View,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   CATEGORIAS_FILTRO, COLORES_COMUNES, ESTILOS_COMUNES,
   MAPA_COLORES, OPCIONES_CATEGORIA, TIPOS_TELA,
@@ -13,6 +5,14 @@ import {
 import { useSubirPrenda } from '@/hooks/useSubirPrenda';
 import { supabase } from '@/lib/supabase';
 import { styles } from '@/styles/screens/prendas';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator, Alert, Animated, Dimensions, FlatList, Image,
+  KeyboardAvoidingView, Modal, Platform, ScrollView,
+  Text, TextInput, TouchableOpacity, View,
+} from 'react-native';
 
 // ─── Estado config ────────────────────────────────────────────────────────────
 
@@ -90,6 +90,10 @@ export default function PrendasScreen() {
   const [modalSimbolosVisible, setModalSimbolosVisible] = useState(false);
   const [cargandoSimbolos, setCargandoSimbolos]         = useState(false);
 
+  const [editEstilos, setEditEstilos]                       = useState<string[]>([]);
+  const [modalEditEstiloVisible, setModalEditEstiloVisible] = useState(false);
+  const [guardandoCambios, setGuardandoCambios]             = useState(false);
+
   // ── Panel de detalle: toggle expandido / colapsado ───────────────────────
   const PANEL_SNAP     = Dimensions.get('window').height * 0.48;
   const panelAnim      = useRef(new Animated.Value(0)).current;
@@ -156,6 +160,11 @@ export default function PrendasScreen() {
     setPrendaSeleccionada(prenda);
     setEstadoPrenda((prenda.estado as EstadoKey) || 'Limpio');
     setSimbolosDePrenda([]);
+    setEditEstilos(
+      prenda.estilo
+        ? (Array.isArray(prenda.estilo) ? prenda.estilo : prenda.estilo.split(', ').filter(Boolean))
+        : []
+    );
     setModalDetalleVisible(true);
     setCargandoSimbolos(true);
     try {
@@ -167,6 +176,33 @@ export default function PrendasScreen() {
     } finally {
       setCargandoSimbolos(false);
     }
+  };
+
+  const toggleFavorito = async () => {
+    if (!prendaSeleccionada) return;
+    const nuevoValor = !prendaSeleccionada.es_favorito;
+    await supabase.from('prendas').update({ es_favorito: nuevoValor }).eq('id', prendaSeleccionada.id);
+    setPrendaSeleccionada((p: any) => ({ ...p, es_favorito: nuevoValor }));
+    setPrendas(prev => prev.map(p => p.id === prendaSeleccionada.id ? { ...p, es_favorito: nuevoValor } : p));
+  };
+
+  const toggleEditEstilo = (estilo: string) => {
+    setEditEstilos(prev =>
+      prev.includes(estilo)
+        ? prev.filter(e => e !== estilo)
+        : prev.length < 3 ? [...prev, estilo] : prev
+    );
+  };
+
+  const guardarEstilos = async () => {
+    if (!prendaSeleccionada) return;
+    setGuardandoCambios(true);
+    const nuevoEstilo = editEstilos.join(', ');
+    await supabase.from('prendas').update({ estilo: nuevoEstilo }).eq('id', prendaSeleccionada.id);
+    setPrendaSeleccionada((p: any) => ({ ...p, estilo: nuevoEstilo }));
+    setPrendas(prev => prev.map(p => p.id === prendaSeleccionada.id ? { ...p, estilo: nuevoEstilo } : p));
+    setGuardandoCambios(false);
+    setModalEditEstiloVisible(false);
   };
 
   const actualizarEstado = async (nuevoEstado: EstadoKey) => {
@@ -263,9 +299,13 @@ export default function PrendasScreen() {
   const prendasFiltradas = prendas.filter(prenda => {
     if (categoriaActiva === 'Todas') return true;
     if (categoriaActiva === 'Favoritos') return prenda.es_favorito;
-    if (categoriaActiva === 'Tops') return ['Tops', 'Jerseys', 'Abrigos y chaquetas', 'Camisas y blusas'].includes(prenda.categoria);
-    if (categoriaActiva === 'Pantalones') return ['Pantalones', 'Faldas'].includes(prenda.categoria);
-    return prenda.categoria === categoriaActiva;
+    if (categoriaActiva === 'Tops') return ['Top / Camiseta', 'Camisa / Blusa', 'Jersey / Sudadera'].includes(prenda.categoria);
+    if (categoriaActiva === 'Pantalones') return prenda.categoria === 'Pantalón';
+    if (categoriaActiva === 'Faldas') return prenda.categoria === 'Falda';
+    if (categoriaActiva === 'Vestidos') return prenda.categoria === 'Vestido';
+    if (categoriaActiva === 'Abrigos') return prenda.categoria === 'Abrigo / Chaqueta';
+    if (categoriaActiva === 'Zapatos') return prenda.categoria === 'Zapatos / Calzado';
+    return false;
   });
 
   // ─── Render prenda card ───────────────────────────────────────────────────
@@ -292,7 +332,6 @@ export default function PrendasScreen() {
     );
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <View style={styles.container}>
@@ -547,9 +586,16 @@ export default function PrendasScreen() {
                 </TouchableOpacity>
                 <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
 
-                  {/* Nombre + eliminar */}
+                  {/* Nombre + favorito + eliminar */}
                   <View style={styles.detalleHeaderRow}>
                     <Text style={styles.detalleNombre}>{prendaSeleccionada.nombre}</Text>
+                    <TouchableOpacity onPress={toggleFavorito} style={{ marginRight: 12 }}>
+                      <MaterialCommunityIcons
+                        name={prendaSeleccionada.es_favorito ? 'star' : 'star-outline'}
+                        size={28}
+                        color="#5E7E91"
+                      />
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => confirmarEliminacion(prendaSeleccionada)}>
                       <MaterialCommunityIcons name="trash-can-outline" size={28} color="#d9534f" />
                     </TouchableOpacity>
@@ -598,12 +644,13 @@ export default function PrendasScreen() {
                       <Text style={styles.detalleTexto}>Tela: <Text style={styles.bold}>{prendaSeleccionada.tipo_tela}</Text></Text>
                     </View>
                   ) : null}
-                  {prendaSeleccionada.estilo ? (
-                    <View style={styles.detalleFila}>
-                      <MaterialCommunityIcons name="flash-outline" size={20} color="#666" />
-                      <Text style={styles.detalleTexto}>Estilo: <Text style={styles.bold}>{Array.isArray(prendaSeleccionada.estilo) ? prendaSeleccionada.estilo.join(', ') : prendaSeleccionada.estilo}</Text></Text>
-                    </View>
-                  ) : null}
+                  <TouchableOpacity style={styles.detalleFila} onPress={() => setModalEditEstiloVisible(true)}>
+                    <MaterialCommunityIcons name="flash-outline" size={20} color="#666" />
+                    <Text style={[styles.detalleTexto, { flex: 1 }]}>
+                      Estilo: <Text style={styles.bold}>{editEstilos.length > 0 ? editEstilos.join(', ') : 'Sin estilo'}</Text>
+                    </Text>
+                    <MaterialCommunityIcons name="pencil-outline" size={16} color="#aaa" />
+                  </TouchableOpacity>
 
                   {/* Símbolos de lavado */}
                   <View style={styles.divisor} />
@@ -642,6 +689,42 @@ export default function PrendasScreen() {
               </Animated.View>
             </>
           )}
+
+          {/* ─── MODAL EDITAR ESTILO ─────────────────────────────── */}
+          <Modal visible={modalEditEstiloVisible} animationType="fade" transparent>
+            <View style={styles.modalOverlay}><View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Editar estilo (máx 3)</Text>
+              <FlatList
+                data={ESTILOS_COMUNES}
+                keyExtractor={(item) => item}
+                renderItem={({ item }) => {
+                  const sel = editEstilos.includes(item);
+                  return (
+                    <TouchableOpacity
+                      style={[styles.modalOpcionRow, sel && styles.opcionSeleccionada]}
+                      onPress={() => toggleEditEstilo(item)}
+                    >
+                      <Text style={[styles.textoOpcion, sel && { fontWeight: 'bold', color: '#1A2024' }]}>{item}</Text>
+                      {sel && <MaterialCommunityIcons name="check" size={20} color="#1A2024" />}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+              <TouchableOpacity
+                style={[styles.botonCerrarModal, { backgroundColor: '#1A2024' }]}
+                onPress={guardarEstilos}
+                disabled={guardandoCambios}
+              >
+                {guardandoCambios
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={[styles.textoCerrarModal, { color: '#fff' }]}>Guardar ({editEstilos.length}/3)</Text>
+                }
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.botonCerrarModal} onPress={() => setModalEditEstiloVisible(false)}>
+                <Text style={styles.textoCerrarModal}>Cancelar</Text>
+              </TouchableOpacity>
+            </View></View>
+          </Modal>
 
           {/* ─── MODAL DE SÍMBOLOS — anidado dentro del de detalle ── */}
           {/* Esto es necesario en React Native para que aparezca sobre el modal padre */}

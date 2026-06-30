@@ -26,7 +26,7 @@ export function getSugerencia(prenda: {
   const cat   = prenda.categoria || '';
   const tela  = prenda.tipo_tela || '';
   const del   = prenda.es_delicado || false;
-  const formal = esFormal(prenda.estilo);
+  const formal = esFormal((prenda.estilo ?? null) as string | string[] | null);
   const telaFina = esTelaDelicada(tela) || del;
 
   // ── Zapatos ───────────────────────────────────────────────────────

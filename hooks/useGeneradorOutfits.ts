@@ -1,10 +1,8 @@
 import * as Location from 'expo-location';
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { OPENWEATHER_API_KEY } from '@/constants/config';
 import { supabase } from '../lib/supabase';
-
-// 🔑 Tu clave de OpenWeatherMap
-const OPENWEATHER_API_KEY = "335365b4cdb6c5a038c28b16c4701b64";
 
 export const useGeneradorOutfits = () => {
   const [loading, setLoading] = useState(false);
@@ -60,6 +58,35 @@ export const useGeneradorOutfits = () => {
     if (['Zapato', 'Calzado', 'Zapatilla'].some(k => cat.includes(k))) return 'calzado';
     if (['Abrigo', 'Chaqueta', 'Jersey', 'Sudadera'].some(k => cat.includes(k))) return 'abrigo';
     return null;
+  };
+
+  // ── Compatibilidad de colores ─────────────────────────────────────────
+  const NEUTRALES = new Set(['Blanco', 'Negro', 'Gris', 'Beige', 'Marrón', 'Dorado', 'Plateado']);
+  const ACENTO_COMPAT: Record<string, string[]> = {
+    'Azul':    ['Morado', 'Rosa', 'Naranja'],
+    'Rojo':    ['Rosa', 'Naranja'],
+    'Verde':   ['Amarillo', 'Azul'],
+    'Amarillo':['Verde', 'Naranja'],
+    'Naranja': ['Rojo', 'Amarillo', 'Verde', 'Azul'],
+    'Rosa':    ['Morado', 'Rojo', 'Azul'],
+    'Morado':  ['Rosa', 'Azul'],
+  };
+
+  const _extraerColores = (colorStr: string): string[] =>
+    colorStr ? colorStr.split(',').map(c => c.trim()).filter(Boolean) : [];
+
+  const _colorCompatible = (pA: any, pB: any): boolean => {
+    if (!pA?.color || !pB?.color) return true;
+    const cA = _extraerColores(pA.color);
+    const cB = _extraerColores(pB.color);
+    if (cA.some(c => NEUTRALES.has(c)) || cB.some(c => NEUTRALES.has(c))) return true;
+    for (const a of cA) {
+      for (const b of cB) {
+        if (a === b) return true;
+        if (ACENTO_COMPAT[a]?.includes(b)) return true;
+      }
+    }
+    return false;
   };
 
   const _preguntarEstado = (
@@ -143,7 +170,17 @@ export const useGeneradorOutfits = () => {
 
       const azar = (arr: any[]) => arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : null;
       const deslot = (slot: string) => pool.filter(p => _slotDe(p.categoria) === slot);
-      const elegir = (slot: string) => slotFijo[slot] ?? azar(deslot(slot));
+
+      // Elige prenda del slot compatible con las ya elegidas; si no hay, elige sin restricción
+      const yaElegidas: any[] = [];
+      const elegirCompat = (slot: string): any => {
+        if (slotFijo[slot]) return slotFijo[slot];
+        const candidatos = deslot(slot);
+        const compatibles = candidatos.filter(p =>
+          yaElegidas.every(e => e && _colorCompatible(p, e))
+        );
+        return azar(compatibles.length > 0 ? compatibles : candidatos);
+      };
 
       // ── Armar outfit ──────────────────────────────────────────────
       let superior: any = null;
@@ -151,9 +188,11 @@ export const useGeneradorOutfits = () => {
 
       if (slotFijo['superior']) {
         superior = slotFijo['superior'];
-        inferior = superior.categoria.includes('Vestido')
-          ? null
-          : elegir('inferior');
+        yaElegidas.push(superior);
+        if (!superior.categoria.includes('Vestido')) {
+          inferior = elegirCompat('inferior');
+          if (inferior) yaElegidas.push(inferior);
+        }
       } else {
         const vestidosPool   = pool.filter(p => p.categoria.includes('Vestido'));
         const superioresPool = pool.filter(p =>
@@ -176,16 +215,35 @@ export const useGeneradorOutfits = () => {
         if (puedeVestido && (!puedeConjunto || Math.random() > 0.5)) {
           superior = azar(vestidosPool);
           inferior = null;
+          if (superior) yaElegidas.push(superior);
         } else {
           superior = azar(superioresPool);
-          inferior = slotFijo['inferior'] ?? azar(inferioresPool);
+          if (superior) yaElegidas.push(superior);
+          // Filtra inferiores compatibles con el superior elegido
+          const infCompat = inferioresPool.filter(p =>
+            yaElegidas.every(e => e && _colorCompatible(p, e))
+          );
+          inferior = slotFijo['inferior'] ?? azar(infCompat.length > 0 ? infCompat : inferioresPool);
+          if (inferior) yaElegidas.push(inferior);
         }
       }
 
-      const calzado = elegir('calzado');
-      const abrigo  = (clima.tipo === 'Frío' || clima.tipo === 'Entretiempo')
-        ? elegir('abrigo')
-        : null;
+      const calzado = elegirCompat('calzado');
+      if (calzado) yaElegidas.push(calzado);
+
+      // Frío → puede ser Abrigo/Chaqueta o Jersey/Sudadera
+      // Entretiempo → solo Jersey/Sudadera (capa ligera)
+      // Calor → nada
+      let abrigo: any = null;
+      if (clima.tipo === 'Frío') {
+        abrigo = elegirCompat('abrigo');
+      } else if (clima.tipo === 'Entretiempo') {
+        const capasLigeras = pool.filter(p =>
+          (p.categoria.includes('Jersey') || p.categoria.includes('Sudadera')) &&
+          yaElegidas.every(e => e && _colorCompatible(p, e))
+        );
+        abrigo = azar(capasLigeras.length > 0 ? capasLigeras : []);
+      }
 
       setOutfitGenerado({ clima, superior, inferior, calzado, abrigo });
 
@@ -268,7 +326,7 @@ export const useGeneradorOutfits = () => {
     }
   };
 
-  const guardarOutfitManual = async (nombre: string, idsSeleccionadas: string[]): Promise<boolean> => {
+  const guardarOutfitManual = async (nombre: string, idsSeleccionadas: string[], evento: string = 'Diario'): Promise<boolean> => {
     if (idsSeleccionadas.length === 0) return false;
     setLoading(true);
     try {
@@ -281,7 +339,7 @@ export const useGeneradorOutfits = () => {
           id_usuario: user.id,
           nombre: nombre.trim() || 'Look Manual',
           clima_ideal: 'Cualquiera',
-          evento_ideal: 'Manual',
+          evento_ideal: evento,
         })
         .select()
         .single();

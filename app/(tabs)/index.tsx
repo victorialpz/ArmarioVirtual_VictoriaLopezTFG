@@ -22,6 +22,7 @@ function weatherIcon(temp: number, descripcion: string): string {
 export default function HomeScreen() {
   const { climaActual, obtenerClima } = useGeneradorOutfits();
 
+  const [nombreUsuario,     setNombreUsuario]     = useState<string>('');
   const [prendasEnUso,      setPrendasEnUso]      = useState<any[]>([]);
   const [outfitsAnteriores, setOutfitsAnteriores] = useState<any[]>([]);
   const [cargando,          setCargando]          = useState(true);
@@ -38,6 +39,13 @@ export default function HomeScreen() {
       setCargando(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      const { data: usuarioData } = await supabase
+        .from('usuarios')
+        .select('nombre')
+        .eq('id', user.id)
+        .single();
+      if (usuarioData?.nombre) setNombreUsuario(usuarioData.nombre);
 
       // Look del día: prendas con estado "En uso"
       const { data: enUso } = await supabase
@@ -75,7 +83,7 @@ export default function HomeScreen() {
       {/* ── Header ──────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>¡Hola! 👋</Text>
+          <Text style={styles.greeting}>¡Hola{nombreUsuario ? `, ${nombreUsuario}` : ''}! 👋</Text>
           <Text style={styles.subtitle}>
             {prendasEnUso.length > 0 ? 'Tu look de hoy' : '¿Qué nos ponemos hoy?'}
           </Text>

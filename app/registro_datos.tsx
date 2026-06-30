@@ -3,10 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { styles } from '@/styles/screens/registro';
-
-import { logger } from '@/lib/logger';
+import { ActivityIndicator, Alert, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function RegistroDatosScreen() {
   const [formData, setFormData] = useState({
@@ -24,59 +21,49 @@ export default function RegistroDatosScreen() {
     const { email, password, usuario, nombre, apellidos, telefono } = formData;
 
     if (!email || !password || !usuario) {
-      logger.warn('RegistroDatosScreen', 'Datos de registro incompletos', { emailProvided: !!email, passwordProvided: !!password, usuarioProvided: !!usuario });
       Alert.alert('Error', 'Correo, Contraseña y Usuario son obligatorios.');
       return;
     }
 
     setLoading(true);
 
-    try {
-      logger.info('RegistroDatosScreen', 'Iniciando registro de usuario', { email, usuario });
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-      if (authError) {
-        logger.error('RegistroDatosScreen', authError, { email, usuario });
-        Alert.alert('Error en el registro', authError.message);
-        return;
-      }
-
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('usuarios') 
-          .insert([
-            {
-              id: authData.user.id,
-              usuario,
-              nombre,
-              apellidos,
-              telefono,
-              email
-            }
-          ]);
-
-        if (profileError) {
-          logger.error('RegistroDatosScreen', profileError, { userId: authData.user.id, usuario });
-          if (profileError.code === '23505') {
-            Alert.alert('Error', 'Ese nombre de usuario ya está cogido. Prueba otro.');
-          } else {
-            Alert.alert('Error al guardar perfil', profileError.message);
-          }
-        } else {
-          logger.info('RegistroDatosScreen', 'Registro completado correctamente', { userId: authData.user.id, usuario });
-          Alert.alert('¡Bienvenido!', 'Cuenta creada con éxito.');
-          router.replace('/(tabs)');
-        }
-      }
-    } catch (error: any) {
-      logger.error('RegistroDatosScreen', error, { formData: { email, usuario } });
-      Alert.alert('Error en el registro', error.message || 'Ocurrió un error inesperado.');
-    } finally {
+    if (authError) {
+      Alert.alert('Error en el registro', authError.message);
       setLoading(false);
+      return;
     }
+
+    if (authData.user) {
+      const { error: profileError } = await supabase
+        .from('usuarios') 
+        .insert([
+          {
+            id: authData.user.id,
+            usuario,
+            nombre,
+            apellidos,
+            telefono,
+            email
+          }
+        ]);
+
+      if (profileError) {
+        if (profileError.code === '23505') {
+          Alert.alert('Error', 'Ese nombre de usuario ya está cogido. Prueba otro.');
+        } else {
+          Alert.alert('Error al guardar perfil', profileError.message);
+        }
+      } else {
+        Alert.alert('¡Bienvenido!', 'Cuenta creada con éxito.');
+        router.replace('/(tabs)');
+      }
+    }
+    setLoading(false);
   };
 
   return (
@@ -109,3 +96,13 @@ export default function RegistroDatosScreen() {
   );
 }
 
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F4F6F8', padding: 20 },
+  header: { alignItems: 'center', marginBottom: 30 },
+  titulo: { fontSize: 28, fontWeight: 'bold', color: '#333' },
+  form: { width: '100%' },
+  label: { fontSize: 14, fontWeight: 'bold', color: '#1A2024', marginBottom: 8, marginTop: 15 },
+  input: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 15, borderWidth: 1, borderColor: '#ddd' },
+  boton: { backgroundColor: '#1A2024', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 20 },
+  textoBoton: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+});

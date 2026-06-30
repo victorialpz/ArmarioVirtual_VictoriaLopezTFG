@@ -33,6 +33,9 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Credenciales y claves sensibles — NO subir
+constants/config.ts
+
 # typescript
 *.tsbuildinfo
 

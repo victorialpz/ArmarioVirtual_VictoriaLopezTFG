@@ -153,7 +153,7 @@ export default function LavadoScreen() {
           .from('prendas')
           .select('*, prenda_simbolos(simbolos_lavado(*))')
           .eq('id_usuario', user.id)
-          .eq('estado', 'para_lavar'),
+          .eq('estado', 'Sucio'),
         supabase
           .from('lavadoras')
           .select('*')
@@ -191,7 +191,7 @@ export default function LavadoScreen() {
           onPress: async () => {
             const { error } = await supabase
               .from('prendas')
-              .update({ estado: 'seco' })
+              .update({ estado: 'Limpio' })
               .in('id', colada.prendas.map(p => p.id));
             if (error) { Alert.alert('Error', error.message); return; }
             Alert.alert('¡Hecho!', `${colada.prendas.length} ${colada.prendas.length === 1 ? 'prenda enviada' : 'prendas enviadas'} a secado.`);
@@ -335,7 +335,7 @@ export default function LavadoScreen() {
               No hay prendas para lavar
             </Text>
             <Text style={[styles.textoVacio, { textAlign: 'center', marginTop: 6, paddingHorizontal: 30 }]}>
-              Abre una prenda en "Mi Ropa" y cámbiala a "Para lavar"
+              Abre una prenda en "Mi Ropa" y cámbiala a "Sucio"
             </Text>
           </View>
         ) : (

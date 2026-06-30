@@ -63,7 +63,7 @@ const _screen = StyleSheet.create({
   },
 
   // Modal de detalle (tamaño real)
-  modalContainer:  { flex: 1, backgroundColor: '#111' },
+  modalContainer:  { flex: 1, backgroundColor: '#fff' },
   panelHandle: {
     width: '100%',
     alignItems: 'center',
