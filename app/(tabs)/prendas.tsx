@@ -32,37 +32,36 @@ const ESTADO_DOT: Record<EstadoKey, string> = {
 };
 
 
-type SimboloConfig = { icon: string; color: string; bg: string; tempText?: string };
+type SimboloConfig = { icon: any };
 
 const SIMBOLO_CONFIG: Record<string, SimboloConfig> = {
-  MAQUINA_30:     { icon: 'washing-machine', color: '#2196F3', bg: '#E3F2FD', tempText: '30°' },
-  MAQUINA_40:     { icon: 'washing-machine', color: '#FF9800', bg: '#FFF3E0', tempText: '40°' },
-  MAQUINA_60:     { icon: 'washing-machine', color: '#F44336', bg: '#FFEBEE', tempText: '60°' },
-  MAQUINA_90:     { icon: 'washing-machine', color: '#B71C1C', bg: '#FFCDD2', tempText: '90°' },
-  DELICADO_30:    { icon: 'hand-water',      color: '#29B6F6', bg: '#E1F5FE', tempText: '30°' },
-  DELICADO_40:    { icon: 'hand-water',      color: '#26C6DA', bg: '#E0F7FA', tempText: '40°' },
-  LAVADO_MANO:    { icon: 'hand-water',      color: '#1E88E5', bg: '#BBDEFB' },
-  NO_LAVAR:       { icon: 'cancel',          color: '#EF5350', bg: '#FFEBEE' },
-  LIMPIEZA_SECO:  { icon: 'tshirt-crew',     color: '#AB47BC', bg: '#F3E5F5' },
-  NO_CENTRIFUGAR: { icon: 'rotate-right',    color: '#EF5350', bg: '#FFEBEE' },
-  NO_BLANQUEAR:   { icon: 'water',           color: '#EF5350', bg: '#FFEBEE' },
-  NO_SECADORA:    { icon: 'cancel',          color: '#8D6E63', bg: '#EFEBE9' },
-  TENDER_PLANO:   { icon: 'minus',           color: '#78909C', bg: '#ECEFF1' },
-  TENDER_SOMBRA:  { icon: 'weather-cloudy',  color: '#90A4AE', bg: '#ECEFF1' },
-  NO_PLANCHAR:    { icon: 'cancel',          color: '#EF5350', bg: '#FFEBEE' },
-  PLANCHA_BAJA:   { icon: 'iron',            color: '#66BB6A', bg: '#E8F5E9', tempText: '110°' },
-  PLANCHA_MEDIA:  { icon: 'iron',            color: '#FFA726', bg: '#FFF3E0', tempText: '150°' },
-  PLANCHA_ALTA:   { icon: 'iron',            color: '#EF5350', bg: '#FFEBEE', tempText: '200°' },
+  MAQUINA_30:     { icon: require('@/assets/images/simbolos-lavado/maquina_30.png') },
+  MAQUINA_40:     { icon: require('@/assets/images/simbolos-lavado/maquina_40.png') },
+  MAQUINA_60:     { icon: require('@/assets/images/simbolos-lavado/maquina_60.png') },
+  MAQUINA_90:     { icon: require('@/assets/images/simbolos-lavado/maquina_90.png') },
+  DELICADO_30:    { icon: require('@/assets/images/simbolos-lavado/delicado.png') },
+  DELICADO_40:    { icon: require('@/assets/images/simbolos-lavado/delicado.png') },
+  LAVADO_MANO:    { icon: require('@/assets/images/simbolos-lavado/lavado_mano.png') },
+  NO_LAVAR:       { icon: require('@/assets/images/simbolos-lavado/no_lavar.png') },
+  LIMPIEZA_SECO:  { icon: require('@/assets/images/simbolos-lavado/limpieza_seco.png') },
+  NO_SECADORA:    { icon: require('@/assets/images/simbolos-lavado/no_secadora.png') },
+  TENDER_PLANO:   { icon: require('@/assets/images/simbolos-lavado/tender_plano.png') },
+  TENDER_SOMBRA:  { icon: require('@/assets/images/simbolos-lavado/tender_sombra.png') },
+  NO_PLANCHAR:    { icon: require('@/assets/images/simbolos-lavado/no_planchar.png') },
+  PLANCHA_BAJA:   { icon: require('@/assets/images/simbolos-lavado/plancha_baja.png') },
+  PLANCHA_MEDIA:  { icon: require('@/assets/images/simbolos-lavado/plancha_media.png') },
+  PLANCHA_ALTA:   { icon: require('@/assets/images/simbolos-lavado/plancha_alta.png') },
 };
 
 const SimboloIcono = ({ codigo }: { codigo: string }) => {
-  const cfg = SIMBOLO_CONFIG[codigo] || { icon: 'tag-outline', color: '#888', bg: '#F4F6F8' };
+  const cfg = SIMBOLO_CONFIG[codigo];
   return (
-    <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: cfg.bg, justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
-      <MaterialCommunityIcons name={cfg.icon as any} size={cfg.tempText ? 18 : 26} color={cfg.color} />
-      {cfg.tempText ? (
-        <Text style={{ fontSize: 9, fontWeight: 'bold', color: cfg.color, marginTop: 1 }}>{cfg.tempText}</Text>
-      ) : null}
+    <View style={{ width: 64, height: 64, justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+      {cfg ? (
+        <Image source={cfg.icon} style={{ width: 64, height: 64 }} resizeMode="contain" />
+      ) : (
+        <MaterialCommunityIcons name="tag-outline" size={26} color="#888" />
+      )}
     </View>
   );
 };

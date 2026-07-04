@@ -25,6 +25,8 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   const [labelImageUri, setLabelImageUri] = useState<string | null>(null);
   const [etiquetaOcr, setEtiquetaOcr]     = useState('');
   const [loadingOcr, setLoadingOcr]        = useState(false);
+  const [tempLavadoOcr, setTempLavadoOcr]  = useState<number | null>(null);   
+  const [esDelicadoOcr, setEsDelicadoOcr]  = useState<boolean | null>(null); 
 
   // ── Tags de organización del usuario ─────────────────────────────
   const [tags, setTags]       = useState<string[]>([]);
@@ -59,6 +61,8 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
 
           const data = await response.json();
           setEtiquetaOcr(data.ocr_text || '');
+          setTempLavadoOcr(data.temp_lavado ?? null);      
+          setEsDelicadoOcr(data.es_delicado ?? null);      
 
           const composicionDetectada = (data.ocr_text ?? '').trim() || (data.tipo_tela_sugerido ?? '').trim();
           if (composicionDetectada) {
@@ -155,8 +159,8 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
         tipo_tela:    tipoTela,
         estilo:       estilos,
         imagen_url:   publicUrl,
-        temp_lavado:  30,
-        es_delicado:  tipoTela === 'Seda' || tipoTela === 'Gasa',
+        temp_lavado:  tempLavadoOcr ?? 30,
+        es_delicado:  esDelicadoOcr ?? (tipoTela === 'Seda' || tipoTela === 'Gasa'),
         etiqueta_ocr: etiquetaOcr || null,
         tags,
       });
@@ -187,6 +191,8 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
     setLoadingOcr(false);
     setTags([]);
     setTagInput('');
+    setTempLavadoOcr(null);   
+    setEsDelicadoOcr(null); 
   };
 
   return {
