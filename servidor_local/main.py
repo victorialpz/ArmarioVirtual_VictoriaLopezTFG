@@ -30,17 +30,17 @@ print("✅ Modelo listo. Servidor en http://0.0.0.0:8000")
 ocr_reader = None
 
 MATERIALES_MAP = {
-    # Algodón — todas las variantes EU
+    # Algodón
     'cotton': 'Algodón', 'coton': 'Algodón', 'cotone': 'Algodón',
     'algodón': 'Algodón', 'algodao': 'Algodón', 'algadão': 'Algodón',
     'katoen': 'Algodón', 'bomull': 'Algodón', 'bavina': 'Algodón',
     'pamuk': 'Algodón', 'bumbac': 'Algodón', 'bombac': 'Algodón',
-    'bavlna': 'Algodón', 'bawelna': 'Algodón',  # CZ/SK/PL
-    'baumwolle': 'Algodón',                      # DE
-    'pamut': 'Algodón',                          # HU
-    'bomuld': 'Algodón',                         # DA
-    'puuvilla': 'Algodón',                       # FI
-    'bombaz': 'Algodón',                         # SL (bombaž)
+    'bavlna': 'Algodón', 'bawelna': 'Algodón',   
+    'baumwolle': 'Algodón',                       
+    'pamut': 'Algodón',                           
+    'bomuld': 'Algodón',                          
+    'puuvilla': 'Algodón',                        
+    'bombaz': 'Algodón',                       
     # Elastán
     'elastane': 'Elastán', 'elastán': 'Elastán', 'elastano': 'Elastán',
     'elastanne': 'Elastán', 'elasthan': 'Elastán', 'spandex': 'Elastán',
@@ -105,9 +105,8 @@ _OCR_ALLOWLIST = (
     '-.'
 )
 
-
+#Reconstruye el texto respetando el orden visual línea a línea usando las coordenadas del OCR.
 def _reconstruir_texto(bloques_raw: list, tolerancia_y: int = 20) -> str:
-    """Reconstruye el texto respetando el orden visual línea a línea usando las coordenadas del OCR."""
     if not bloques_raw:
         return ''
     lineas: dict[int, list[tuple[float, str]]] = {}
@@ -121,14 +120,12 @@ def _reconstruir_texto(bloques_raw: list, tolerancia_y: int = 20) -> str:
         resultado.append(' '.join(t for _, t in fila))
     return '\n'.join(resultado)
 
-
+# Sustituye lecturas erróneas del símbolo % por el literal '%'.
 def _normalizar_texto(texto: str) -> str:
-    """Sustituye lecturas erróneas del símbolo % por el literal '%'."""
     return _RE_PCT_FIX.sub(lambda m: f"{m.group(1)}% ", texto)
 
-
+#Umbral óptimo de binarización (método de Otsu sin OpenCV).
 def _otsu(img_np: np.ndarray) -> int:
-    """Umbral óptimo de binarización (método de Otsu sin OpenCV)."""
     hist, _ = np.histogram(img_np.flatten(), bins=256, range=[0, 256])
     total = img_np.size
     s_total = int(np.dot(np.arange(256), hist))
@@ -148,9 +145,8 @@ def _otsu(img_np: np.ndarray) -> int:
             best, threshold = var, i
     return threshold
 
-
+# Escala, realza contraste y aplica sharpen para mejorar el OCR
 def preprocess_label(imagen_pil: Image.Image) -> Image.Image:
-    """Escala, realza contraste y aplica sharpen para mejorar el OCR."""
     if imagen_pil.width < 1500:
         factor = 1500 / imagen_pil.width
         imagen_pil = imagen_pil.resize((1500, int(imagen_pil.height * factor)), Image.LANCZOS)
@@ -159,12 +155,8 @@ def preprocess_label(imagen_pil: Image.Image) -> Image.Image:
     img = img.filter(ImageFilter.SHARPEN)
     return img
 
-
-def _resolver(word: str) -> str | None:
-    """
-    Devuelve el nombre estándar del material o None si no lo reconoce.
-    FIX 3: usa difflib para manejar errores OCR como 'EJastane' → 'Elastán'.
-    """
+#Devuelve el nombre estándar del material o None si no lo reconoce.
+def _resolver(word: str) -> str | None: 
     w = word.lower().strip()
     if w in MATERIALES_MAP:
         return MATERIALES_MAP[w]
@@ -183,13 +175,11 @@ def detectar_delicado(texto: str) -> bool:
               'gentle', 'dry clean', 'limpieza en seco']
     return any(c in texto for c in claves)
 
-
+#   Recoge votos de porcentaje por material de todas las coincidencias
+#   (la etiqueta repite la misma composición en 10-15 idiomas).
+#  El porcentaje más frecuente para cada material es el correcto.
 def extraer_composicion(texto: str) -> dict:
-    """
-    Recoge votos de porcentaje por material de todas las coincidencias
-    (la etiqueta repite la misma composición en 10-15 idiomas).
-    El porcentaje más frecuente para cada material es el correcto.
-    """
+
     texto = _normalizar_texto(texto)
     votos: dict[str, list[int]] = {}
     print(texto)

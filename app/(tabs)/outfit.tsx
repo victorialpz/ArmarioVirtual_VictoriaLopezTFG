@@ -1,19 +1,19 @@
+import { styles } from '@/styles/screens/outfit';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ViewShot from 'react-native-view-shot';
-import { styles } from '@/styles/screens/outfit';
+import { ESTILOS_COMUNES } from '../../constants/opciones';
 import { useGeneradorOutfits } from '../../hooks/useGeneradorOutfits';
 import { supabase } from '../../lib/supabase';
-import { ESTILOS_COMUNES } from '../../constants/opciones';
 
 export default function OutfitScreen() {
     // Estado para controlar qué pestaña vemos
     const [vistaActiva, setVistaActiva] = useState<'generador' | 'guardados' | 'crear'>('generador');
     
-    // Estados del Generador IA
+    // Estados del Generador de conjuntos
     const [eventoActivo, setEventoActivo] = useState<string>('Diario');
     const { loading, climaActual, outfitGenerado, generarOutfit, guardarOutfit, guardarOutfitManual, calcularClimaDesdeTemp } = useGeneradorOutfits();
     const [modoTemp, setModoTemp] = useState<'gps' | 'manual'>('gps');
@@ -76,7 +76,7 @@ export default function OutfitScreen() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // Consulta mágica: Trae el outfit y cruza las tablas para traer las fotos de sus prendas
+            //Trae el outfit y cruza las tablas para traer las fotos de sus prendas
             const { data, error } = await supabase
                 .from('outfits')
                 .select(`
@@ -107,8 +107,8 @@ export default function OutfitScreen() {
                     text: "Eliminar", 
                     style: "destructive", 
                     onPress: async () => {
-                        // Supabase borrará en cascada las relaciones en outfit_prendas si lo configuraste así, 
-                        // pero por seguridad borramos explícitamente el outfit padre.
+                        // Supabase borrará en cascada las relaciones en outfit_prendas  
+                        //  por seguridad borramos explícitamente el outfit padre.
                         const { error } = await supabase.from('outfits').delete().eq('id', id_outfit);
                         if (!error) {
                             setOutfitsGuardados(prev => prev.filter(o => o.id !== id_outfit));
@@ -231,7 +231,7 @@ export default function OutfitScreen() {
             {/* CONDICIONAL DE VISTAS */}
             {vistaActiva === 'generador' ? (
                 // ----------------------------------------------------
-                // VISTA 1: EL GENERADOR DE IA (Moodboard)
+                // VISTA 1: EL GENERADOR DE OUTFITS
                 // ----------------------------------------------------
                 <ScrollView showsVerticalScrollIndicator={false}>
                     {climaActual ? (

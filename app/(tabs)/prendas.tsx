@@ -14,7 +14,6 @@ import {
   Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 
-// ─── Estado config ────────────────────────────────────────────────────────────
 
 const ESTADOS = [
   { key: 'Limpio',   label: 'Limpio',   icon: 'check-circle-outline', color: '#4CAF50' },
@@ -32,7 +31,6 @@ const ESTADO_DOT: Record<EstadoKey, string> = {
   'Sucio':    '#795548',
 };
 
-// ─── Símbolo icono config ─────────────────────────────────────────────────────
 
 type SimboloConfig = { icon: string; color: string; bg: string; tempText?: string };
 
@@ -69,7 +67,6 @@ const SimboloIcono = ({ codigo }: { codigo: string }) => {
   );
 };
 
-// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function PrendasScreen() {
   const [categoriaActiva, setCategoriaActiva] = useState('Todas');
@@ -94,7 +91,6 @@ export default function PrendasScreen() {
   const [modalEditEstiloVisible, setModalEditEstiloVisible] = useState(false);
   const [guardandoCambios, setGuardandoCambios]             = useState(false);
 
-  // ── Panel de detalle: toggle expandido / colapsado ───────────────────────
   const PANEL_SNAP     = Dimensions.get('window').height * 0.48;
   const panelAnim      = useRef(new Animated.Value(0)).current;
   const [panelColapsado, setPanelColapsado] = useState(false);
@@ -111,7 +107,6 @@ export default function PrendasScreen() {
       setPanelColapsado(false);
     }
   }, [modalDetalleVisible]);
-  // ─────────────────────────────────────────────────────────────────────────
 
   const {
     imageUri, estadoCarga,
@@ -136,7 +131,6 @@ export default function PrendasScreen() {
 
   useFocusEffect(useCallback(() => { cargarPrendas(); }, []));
 
-  // ─── Data ─────────────────────────────────────────────────────────────────
 
   const cargarPrendas = async () => {
     try {
@@ -154,7 +148,6 @@ export default function PrendasScreen() {
     }
   };
 
-  // ─── Detalle ──────────────────────────────────────────────────────────────
 
   const verDetalle = async (prenda: any) => {
     setPrendaSeleccionada(prenda);
@@ -232,7 +225,6 @@ export default function PrendasScreen() {
     }
   };
 
-  // ─── Eliminación ──────────────────────────────────────────────────────────
 
   const confirmarEliminacion = (prenda: any) => {
     Alert.alert(
@@ -294,7 +286,6 @@ export default function PrendasScreen() {
     }
   };
 
-  // ─── Filtrado ─────────────────────────────────────────────────────────────
 
   const prendasFiltradas = prendas.filter(prenda => {
     if (categoriaActiva === 'Todas') return true;
@@ -308,7 +299,6 @@ export default function PrendasScreen() {
     return false;
   });
 
-  // ─── Render prenda card ───────────────────────────────────────────────────
 
   const renderPrenda = ({ item }: { item: any }) => {
     const dotColor = ESTADO_DOT[(item.estado as EstadoKey)] ?? ESTADO_DOT['Limpio'];
@@ -371,7 +361,6 @@ export default function PrendasScreen() {
         <MaterialCommunityIcons name="plus" size={30} color="#fff" />
       </TouchableOpacity>
 
-      {/* ─── MODAL DE SUBIDA ─────────────────────────────────────────────── */}
       <Modal visible={!!imageUri} animationType="slide" transparent={false}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -586,7 +575,6 @@ export default function PrendasScreen() {
                 </TouchableOpacity>
                 <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
 
-                  {/* Nombre + favorito + eliminar */}
                   <View style={styles.detalleHeaderRow}>
                     <Text style={styles.detalleNombre}>{prendaSeleccionada.nombre}</Text>
                     <TouchableOpacity onPress={toggleFavorito} style={{ marginRight: 12 }}>
@@ -601,7 +589,6 @@ export default function PrendasScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Estado */}
                   <View style={styles.divisor} />
                   <Text style={{ fontWeight: '700', color: '#444', marginBottom: 10, fontSize: 14 }}>Estado</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
@@ -628,7 +615,6 @@ export default function PrendasScreen() {
                     })}
                   </View>
 
-                  {/* Detalles */}
                   <View style={styles.divisor} />
                   <View style={styles.detalleFila}>
                     <MaterialCommunityIcons name="tag-outline" size={20} color="#666" />
@@ -652,7 +638,6 @@ export default function PrendasScreen() {
                     <MaterialCommunityIcons name="pencil-outline" size={16} color="#aaa" />
                   </TouchableOpacity>
 
-                  {/* Símbolos de lavado */}
                   <View style={styles.divisor} />
                   <Text style={{ fontWeight: '700', color: '#444', marginBottom: 8, fontSize: 14 }}>Símbolos de la etiqueta</Text>
 
@@ -690,7 +675,6 @@ export default function PrendasScreen() {
             </>
           )}
 
-          {/* ─── MODAL EDITAR ESTILO ─────────────────────────────── */}
           <Modal visible={modalEditEstiloVisible} animationType="fade" transparent>
             <View style={styles.modalOverlay}><View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Editar estilo (máx 3)</Text>
@@ -726,8 +710,7 @@ export default function PrendasScreen() {
             </View></View>
           </Modal>
 
-          {/* ─── MODAL DE SÍMBOLOS — anidado dentro del de detalle ── */}
-          {/* Esto es necesario en React Native para que aparezca sobre el modal padre */}
+
           <Modal
             visible={modalSimbolosVisible}
             animationType="slide"

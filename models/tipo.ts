@@ -1,4 +1,3 @@
-// Archivo: models/types.ts
 
 export interface Prenda {
   id: string;

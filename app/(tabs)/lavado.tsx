@@ -1,14 +1,12 @@
+import { supabase } from '@/lib/supabase';
+import { styles } from '@/styles/screens/lavado';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator, Alert, FlatList, Image,
   Modal, ScrollView, Text, TouchableOpacity, View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { styles } from '@/styles/screens/lavado';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 type Colada = {
   id: string;
@@ -20,8 +18,6 @@ type Colada = {
   esManual: boolean;
   colorGrupo: 'blancos' | 'oscuros' | 'color' | 'mano';
 };
-
-// ─── Algorithm ───────────────────────────────────────────────────────────────
 
 const TELAS_DELICADAS  = new Set(['Lana', 'Seda', 'Gasa', 'Cuero']);
 const TELAS_SINTETICAS = new Set(['Poliéster', 'Nylon']);
@@ -125,8 +121,6 @@ const COLADA_TEMA: Record<string, { bg: string; badge: string }> = {
   color:   { bg: '#F0F5FF', badge: '#D8E8FF' },
   mano:    { bg: '#FFF3F0', badge: '#FFE0DA' },
 };
-
-// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function LavadoScreen() {
   const [prendas, setPrendas]                     = useState<any[]>([]);
@@ -280,7 +274,6 @@ export default function LavadoScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Engranaje fijo esquina superior derecha */}
       <TouchableOpacity
         style={{
           position: 'absolute', top: 16, right: 16, zIndex: 10,
@@ -294,7 +287,6 @@ export default function LavadoScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* Header lavadora */}
         <View style={styles.header}>
           <MaterialCommunityIcons name="washing-machine" size={80} color="#1A2024" />
           <View style={styles.infoLavadora}>
@@ -353,7 +345,6 @@ export default function LavadoScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Modal configuración lavadora */}
       <Modal visible={modalLavadoraVisible} transparent animationType="slide">
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
           <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '70%' }}>

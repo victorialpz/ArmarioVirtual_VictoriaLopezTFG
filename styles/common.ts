@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { Colors } from './colors';
 
 export const commonStyles = StyleSheet.create({
-  // ── Modales ───────────────────────────────────────────────────────
+  //  Modales 
   modalOverlay: {
     flex: 1,
     backgroundColor: Colors.overlay,
@@ -70,7 +70,7 @@ export const commonStyles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
 
-  // ── Inputs ────────────────────────────────────────────────────────
+  // Inputs 
   input: {
     width: '100%',
     height: 52,
@@ -84,7 +84,7 @@ export const commonStyles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ── Fila de botones Guardar / Cancelar ────────────────────────────
+  // Fila de botones Guardar / Cancelar 
   previewButtonsRow: {
     flexDirection: 'row',
     width: '100%',
@@ -117,7 +117,7 @@ export const commonStyles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // ── Botones primario / secundario ─────────────────────────────────
+  // Botones primario / secundario 
   botonPrimario: {
     flexDirection: 'row',
     backgroundColor: Colors.primary,
@@ -152,7 +152,7 @@ export const commonStyles = StyleSheet.create({
   },
   iconoBoton: { marginRight: 10 },
 
-  // ── Pestañas dobles (tab switcher) ────────────────────────────────
+  //  Pestañas dobles
   tabContainer: {
     flexDirection: 'row',
     margin: 20,
@@ -181,7 +181,7 @@ export const commonStyles = StyleSheet.create({
   },
   tabTextActiva: { color: Colors.primary },
 
-  // ── Pildoras / chips de filtro ────────────────────────────────────
+  //  Pildoras / chips de filtro 
   pildoraCategoria: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -193,7 +193,7 @@ export const commonStyles = StyleSheet.create({
   textoCategoria: { color: Colors.textSecondary, fontWeight: '600' },
   textoCategoriaActiva: { color: Colors.textLight },
 
-  // ── Cabeceras de pantalla ─────────────────────────────────────────
+  //  Cabeceras de pantalla 
   screenContainer: { flex: 1, backgroundColor: Colors.background },
   screenHeader: {
     padding: 20,
@@ -208,12 +208,12 @@ export const commonStyles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  // ── Estados vacíos / carga ────────────────────────────────────────
+  //  Estados vacíos / carga 
   emptyContainer: { alignItems: 'center', marginTop: 50 },
   textoVacio: { marginTop: 10, color: Colors.textMuted, textAlign: 'center' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // ── FAB ───────────────────────────────────────────────────────────
+  //  FAB 
   fab: {
     position: 'absolute',
     bottom: 20,
@@ -227,7 +227,7 @@ export const commonStyles = StyleSheet.create({
     elevation: 5,
   },
 
-  // ── Visor de imagen a pantalla completa ───────────────────────────
+  //  Visor de imagen a pantalla completa 
   visorFondo: {
     flex: 1,
     backgroundColor: Colors.overlayDark,
