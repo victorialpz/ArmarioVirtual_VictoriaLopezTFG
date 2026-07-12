@@ -1,3 +1,8 @@
+import { GruposAlmacenamiento, useAlmacenamiento } from '@/hooks/useAlmacenamiento';
+import { ArmarioConfig, calcularCapacidad, CONFIG_DEFECTO, useArmarioConfig } from '@/hooks/useArmarioConfig';
+import { Metodo, METODO_META, PERCHA_LABEL } from '@/lib/reglasAlmacenamiento';
+import { Colors } from '@/styles/colors';
+import { styles } from '@/styles/screens/armario';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -12,16 +17,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { GruposAlmacenamiento, useAlmacenamiento } from '@/hooks/useAlmacenamiento';
-import { ArmarioConfig, calcularCapacidad, CONFIG_DEFECTO, useArmarioConfig } from '@/hooks/useArmarioConfig';
-import { METODO_META, Metodo, PERCHA_LABEL } from '@/lib/reglasAlmacenamiento';
-import { Colors } from '@/styles/colors';
-import { styles } from '@/styles/screens/armario';
-
-// ── Constantes ────────────────────────────────────────────────────────
 
 const ORDEN_GRUPOS: Metodo[] = ['colgar', 'doblar', 'enrollar', 'zapatero'];
-
 const TIPOS_ARMARIO: { key: ArmarioConfig['tipo']; label: string }[] = [
   { key: 'independiente', label: 'Independiente' },
   { key: 'empotrado',     label: 'Empotrado'     },
@@ -29,7 +26,6 @@ const TIPOS_ARMARIO: { key: ArmarioConfig['tipo']; label: string }[] = [
 ];
 
 // ── Asignación de ubicaciones ─────────────────────────────────────────
-// Calcula en qué barra/balda/cajón concreto va cada prenda
 
 function asignarUbicaciones(
   grupos: GruposAlmacenamiento,
@@ -37,7 +33,7 @@ function asignarUbicaciones(
 ): Map<string, string> {
   const mapa = new Map<string, string>();
 
-  // Colgar → barras (distribuidas equitativamente)
+  // Colgar en barras distribuidas equitativamente
   if (config.num_barras > 0 && grupos.colgar.length > 0) {
     const porBarra = Math.ceil(grupos.colgar.length / config.num_barras);
     grupos.colgar.forEach((item, i) => {
@@ -46,12 +42,12 @@ function asignarUbicaciones(
     });
   }
 
-  // Enrollar (tops/camisetas) → cajón 1
+  // Enrollar (tops/camisetas) en el cajón 1
   grupos.enrollar.forEach(item => {
     mapa.set(item.prenda.id, config.num_cajones >= 1 ? 'Cajón 1' : 'Cajón');
   });
 
-  // Doblar: jerseys/sudaderas → baldas; resto → cajones (a partir del 2 si hay enrollar)
+  // Doblar: jerseys/sudaderas en baldas; el resto en cajones, a partir del 2 cajon si hay 
   const esJersey = (cat?: string) =>
     ['Jersey', 'Sudadera'].some(c => cat?.includes(c));
 
@@ -77,7 +73,6 @@ function asignarUbicaciones(
     });
   }
 
-  // Zapatero
   grupos.zapatero.forEach(item => {
     mapa.set(item.prenda.id, config.tiene_zapatero ? 'Zapatero' : 'Base del armario');
   });
@@ -85,7 +80,6 @@ function asignarUbicaciones(
   return mapa;
 }
 
-// ── Componente Stepper ────────────────────────────────────────────────
 
 function Stepper({
   label, value, min, max, step = 1, onChange,
@@ -109,7 +103,6 @@ function Stepper({
   );
 }
 
-// ── Pantalla ──────────────────────────────────────────────────────────
 
 export default function ArmarioScreen() {
   const [modalConfigVisible, setModalConfigVisible] = useState(false);
@@ -143,7 +136,6 @@ export default function ArmarioScreen() {
     }
   };
 
-  // Capacidad
   const { barraMax, cajonesMax } = useMemo(() => calcularCapacidad(config), [config]);
   const nColgar          = grupos.colgar.length;
   const nDoblaryEnrollar = grupos.doblar.length + grupos.enrollar.length;
@@ -153,7 +145,6 @@ export default function ArmarioScreen() {
   const excesoBarra   = configurado && nColgar > barraMax;
   const excesoCajones = configurado && nDoblaryEnrollar > cajonesMax;
 
-  // Ubicaciones concretas (solo si el armario está configurado)
   const ubicaciones = useMemo(
     () => configurado ? asignarUbicaciones(grupos, config) : new Map<string, string>(),
     [grupos, config, configurado]
@@ -165,13 +156,11 @@ export default function ArmarioScreen() {
     <>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-        {/* Cabecera */}
         <View style={styles.header}>
           <Text style={styles.titulo}>Mi Armario</Text>
           <Text style={styles.subtitulo}>Optimización y organización espacial</Text>
         </View>
 
-        {/* Banner de configuración */}
         <TouchableOpacity style={styles.bannerConfig} onPress={abrirConfig} activeOpacity={0.7}>
           <MaterialCommunityIcons name="wardrobe-outline" size={22} color="#5E7E91" />
           {configurado ? (
@@ -193,7 +182,6 @@ export default function ArmarioScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Resumen de conteo */}
             {total > 0 && (
               <View style={styles.resumenBar}>
                 <View style={styles.resumenItem}>
@@ -213,7 +201,6 @@ export default function ArmarioScreen() {
               </View>
             )}
 
-            {/* Barras de capacidad */}
             {configurado && total > 0 && (
               <View style={styles.capacidadContainer}>
                 <View style={styles.capacidadRow}>
@@ -254,7 +241,6 @@ export default function ArmarioScreen() {
               </View>
             )}
 
-            {/* Alertas de desbordamiento */}
             {excesoBarra && (
               <View style={styles.alertaDesbordamiento}>
                 <MaterialCommunityIcons name="alert-circle" size={18} color="#7B5800" />
@@ -289,7 +275,6 @@ export default function ArmarioScreen() {
               </View>
             )}
 
-            {/* Grupos por método */}
             {!loading && ORDEN_GRUPOS.map(metodo => {
               const items = grupos[metodo];
               if (items.length === 0) return null;

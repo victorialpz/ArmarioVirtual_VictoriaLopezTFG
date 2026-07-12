@@ -1,11 +1,12 @@
+import { elegirImagen } from '@/lib/elegirImagen';
 import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { elegirImagen } from '@/lib/elegirImagen';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 
-import { logger } from '@/lib/logger';
 import { useUserContext } from '@/contexts/UserContext';
+import { logger } from '@/lib/logger';
+import { styles } from '@/styles/screens/perfil';
 import { Image } from 'expo-image';
 import {
   ActivityIndicator,
@@ -20,7 +21,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { styles } from '@/styles/screens/perfil';
 
 type CatalogoLavadora = {
   id: string;
@@ -260,7 +260,6 @@ export default function PerfilScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Debes iniciar sesión.');
 
-      // Convertir base64 → Uint8Array (fiable en React Native + Hermes)
       const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
       const fileName = `${user.id}/avatar.jpg`;
 
@@ -309,7 +308,6 @@ export default function PerfilScreen() {
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────────
 
   const cerrarSesion = async () => {
     Alert.alert(
@@ -456,7 +454,7 @@ export default function PerfilScreen() {
 
           {modoSeleccion === 'catalogo' ? (
             <>
-              {/* Picker de marca */}
+              {/* Picker de marca lavadora */}
               <TouchableOpacity style={styles.inputGroup} onPress={() => setShowMarcaPicker(true)}>
                 <MaterialCommunityIcons name="washing-machine" size={20} color="#666" style={styles.icon} />
                 <Text style={[styles.input, { color: lavadora.marca ? '#333' : '#aaa' }]}>

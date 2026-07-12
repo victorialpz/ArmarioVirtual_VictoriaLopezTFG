@@ -14,7 +14,7 @@ const _screen = StyleSheet.create({
   titulo:    { fontSize: 28, fontWeight: 'bold', color: Colors.text },
   subtitulo: { fontSize: 15, color: Colors.textSecondary, marginTop: 5 },
 
-  // ── Tabs ──────────────────────────────────────────────────────────
+  //  Tabs 
   tabContainer: {
     flexDirection: 'row',
     margin: 16,
@@ -28,7 +28,7 @@ const _screen = StyleSheet.create({
   tabText:       { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
   tabTextActiva: { color: Colors.textLight },
 
-  // ── Banner de configuración ────────────────────────────────────────
+  //  Banner de configuración 
   bannerConfig: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -45,7 +45,7 @@ const _screen = StyleSheet.create({
   bannerConfigTexto: { flex: 1, fontSize: 13, color: Colors.textSecondary },
   bannerConfigLink:  { fontSize: 13, fontWeight: '700', color: Colors.primary },
 
-  // ── Resumen numérico ───────────────────────────────────────────────
+  //  Resumen numérico 
   resumenBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -63,7 +63,7 @@ const _screen = StyleSheet.create({
   resumenLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   resumenDiv:   { width: 1, backgroundColor: Colors.border },
 
-  // ── Barras de capacidad ────────────────────────────────────────────
+  //  Barras de capacidad 
   capacidadContainer: { marginHorizontal: 16, marginTop: 12, marginBottom: 4 },
   capacidadRow:       { marginBottom: 10 },
   capacidadHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
@@ -76,7 +76,7 @@ const _screen = StyleSheet.create({
   },
   capacidadFill: { height: '100%', borderRadius: 4 },
 
-  // ── Alerta de desbordamiento ───────────────────────────────────────
+  //  Alerta de desbordamiento 
   alertaDesbordamiento: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -89,7 +89,7 @@ const _screen = StyleSheet.create({
   },
   alertaDesbordamientoTexto: { flex: 1, fontSize: 13, color: '#7B5800', lineHeight: 18 },
 
-  // ── Grupos por método ──────────────────────────────────────────────
+  //  Grupos por método 
   grupoContainer: { marginHorizontal: 16, marginBottom: 16, marginTop: 8 },
   grupoHeader: {
     flexDirection: 'row',
@@ -112,7 +112,7 @@ const _screen = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.08)',
   },
 
-  // ── Tarjeta de prenda ──────────────────────────────────────────────
+  //  Tarjeta de prenda 
   prendaCard: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
@@ -169,11 +169,11 @@ const _screen = StyleSheet.create({
   },
   alertaTexto: { fontSize: 11, color: '#7B5800', flex: 1, lineHeight: 16 },
 
-  // ── Vacío ──────────────────────────────────────────────────────────
+  //  Vacío 
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTexto: { color: Colors.textMuted, fontSize: 15, marginTop: 12, textAlign: 'center' },
 
-  // ── Modal configuración ────────────────────────────────────────────
+  //  Modal configuración 
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -248,7 +248,7 @@ const _screen = StyleSheet.create({
   },
   botonGuardarTexto: { color: Colors.textLight, fontSize: 16, fontWeight: 'bold' },
 
-  // ── Vista gráfica armario ──────────────────────────────────────────
+  //  Vista gráfica armario 
   section:         { paddingHorizontal: 16 },
   sectionTitle:    { fontSize: 20, fontWeight: 'bold', color: Colors.text, marginBottom: 5, marginTop: 16 },
   sectionSubtitle: { fontSize: 13, color: Colors.textSecondary, marginBottom: 16, lineHeight: 18 },

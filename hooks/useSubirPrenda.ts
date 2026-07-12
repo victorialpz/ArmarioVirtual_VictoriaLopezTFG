@@ -34,9 +34,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
 
   const _subiendo = useRef(false);
 
-  // ──────────────────────────────────────────────────────────────────
-  // GALERÍA — prenda principal
-  // ──────────────────────────────────────────────────────────────────
+
   const pickImage = () => {
     elegirImagen(
       { mediaTypes: ['images'], allowsEditing: false, quality: 0.8 },
@@ -45,7 +43,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   };
 
   // ──────────────────────────────────────────────────────────────────
-  // GALERÍA — foto de etiqueta física → llama al OCR automáticamente
+  // GALERÍA — La foto de etiqueta física llama al OCR automáticamente
   // ──────────────────────────────────────────────────────────────────
   const pickLabelImage = () => {
     elegirImagen(
@@ -63,11 +61,9 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
 
           const data = await response.json();
           setEtiquetaOcr(data.ocr_text || '');
-          setTempLavadoOcr(data.temp_lavado ?? null);      
-          setEsDelicadoOcr(data.es_delicado ?? null);      
 
           // DEBUG — elimina este Alert cuando funcione correctamente
-          //  Alert.alert('OCR respuesta', `Tela leida: "${data.ocr_text}"\n"`);
+          Alert.alert('OCR respuesta', `Tela leida: "${data.ocr_text}"\n"`);
 
           const composicionDetectada = (data.ocr_text ?? '').trim() || (data.tipo_tela_sugerido ?? '').trim();
           if (composicionDetectada) {
@@ -84,7 +80,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   };
 
   // ──────────────────────────────────────────────────────────────────
-  // TAGS — gestión
+  // TAGS
   // ──────────────────────────────────────────────────────────────────
   const addTag = (input: string) => {
     const clean = input.trim().toLowerCase().replace(/\s+/g, '-');
@@ -96,7 +92,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   const removeTag = (tag: string) => setTags(prev => prev.filter(t => t !== tag));
 
   // ──────────────────────────────────────────────────────────────────
-  // ESTILOS y COLORES — toggles
+  // ESTILOS y COLORES 
   // ──────────────────────────────────────────────────────────────────
   const cambiarTipoTela = (tela: string) => {
     setTipoTela(tela);
@@ -118,7 +114,7 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   };
 
   // ──────────────────────────────────────────────────────────────────
-  // SUBIR PRENDA — flujo completo
+  // SUBIR UNA PRENDA 
   // ──────────────────────────────────────────────────────────────────
   const subirPrenda = async () => {
     if (!imageUri || _subiendo.current) return;
@@ -164,8 +160,8 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
         tipo_tela:    tipoTela,
         estilo:       estilos,
         imagen_url:   publicUrl,
-        temp_lavado:  tempLavadoOcr ?? 30,
-        es_delicado:  esDelicadoOcr ?? (tipoTela === 'Seda' || tipoTela === 'Gasa'),
+        temp_lavado:  30,
+        es_delicado:  tipoTela === 'Seda' || tipoTela === 'Gasa',
         // ── nuevos campos ──────────────────────────────────────────
         etiqueta_ocr: etiquetaOcr || null,
         tags,
@@ -202,20 +198,15 @@ export const useSubirPrenda = (onSuccess?: () => void) => {
   };
 
   return {
-    // prenda
     imageUri, setImageUri, estadoCarga,
-    // formulario
     descripcion, setDescripcion,
     categoria, setCategoria,
     colores, setColores, toggleColor,
     tipoTela, setTipoTela, cambiarTipoTela, telaAutoDetectada,
     estilos, toggleEstilo, setEstilos,
     modalVisible, setModalVisible,
-    // etiqueta OCR
     labelImageUri, etiquetaOcr, setEtiquetaOcr, loadingOcr, pickLabelImage,
-    // tags
     tags, tagInput, setTagInput, addTag, removeTag,
-    // acciones
     pickImage, subirPrenda, limpiar: _limpiar,
   };
 };

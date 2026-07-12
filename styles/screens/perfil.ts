@@ -12,7 +12,7 @@ const _screen = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
 
-  // ── Avatar ───────────────────────────────────────────────────────────
+  //  Avatar 
   avatarWrapper: {
     position: 'relative',
     width: 96,

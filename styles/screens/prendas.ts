@@ -150,7 +150,6 @@ const _screen = StyleSheet.create({
   },
   badgeAutoDetectadoTexto:  { color: Colors.textLight, fontSize: 11, fontWeight: 'bold' },
 
-  // Unused kept for compatibility
   seccionTitulo: {
     fontSize: 16,
     fontWeight: 'bold',

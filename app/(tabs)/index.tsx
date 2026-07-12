@@ -1,13 +1,13 @@
+import { useGeneradorOutfits } from '@/hooks/useGeneradorOutfits';
+import { supabase } from '@/lib/supabase';
+import { styles } from '@/styles/screens/home';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator, FlatList, Image,
   ScrollView, Text, TouchableOpacity, View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
-import { supabase } from '@/lib/supabase';
-import { useGeneradorOutfits } from '@/hooks/useGeneradorOutfits';
-import { styles } from '@/styles/screens/home';
 
 function weatherIcon(temp: number, descripcion: string): string {
   const d = descripcion.toLowerCase();
@@ -80,7 +80,6 @@ export default function HomeScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-      {/* ── Header ──────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.greeting}>¡Hola{nombreUsuario ? `, ${nombreUsuario}` : ''}! 👋</Text>
@@ -109,7 +108,7 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* ── Look del día ─────────────────────────────────────────────── */}
+      {/* Look del día */}
       {cargando ? (
         <ActivityIndicator size="large" color="#1A2024" style={{ marginVertical: 30 }} />
       ) : prendasEnUso.length > 0 ? (
@@ -139,7 +138,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
-      {/* ── Acción rápida: generar outfit ───────────────────────────── */}
+      {/* Acción rápida: generar outfit */}
       <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/outfit')}>
         <MaterialCommunityIcons name="hanger" size={32} color="#fff" />
         <View style={styles.actionTextContainer}>
@@ -157,7 +156,7 @@ export default function HomeScreen() {
         <Text style={styles.textoQuickAdd}>Añadir Prenda Rápida</Text>
       </TouchableOpacity>
 
-      {/* ── Outfits anteriores ──────────────────────────────────────── */}
+      {/* Outfits anteriores  */}
       {outfitsAnteriores.length > 0 && (
         <View style={styles.anterioresSection}>
           <Text style={styles.sectionTitle}>Outfits anteriores</Text>
