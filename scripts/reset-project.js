@@ -44,7 +44,6 @@ const moveDirectories = async (userInput) => {
   try {
     if (userInput === "y") {
       await fs.promises.mkdir(exampleDirPath, { recursive: true });
-      console.log(`📁 /${exampleDir} directory created.`);
     }
 
     for (const dir of oldDirs) {
@@ -53,36 +52,22 @@ const moveDirectories = async (userInput) => {
         if (userInput === "y") {
           const newDirPath = path.join(root, exampleDir, dir);
           await fs.promises.rename(oldDirPath, newDirPath);
-          console.log(`➡️ /${dir} moved to /${exampleDir}/${dir}.`);
         } else {
           await fs.promises.rm(oldDirPath, { recursive: true, force: true });
-          console.log(`❌ /${dir} deleted.`);
         }
-      } else {
-        console.log(`➡️ /${dir} does not exist, skipping.`);
-      }
+      } 
     }
 
     const newAppDirPath = path.join(root, newAppDir);
     await fs.promises.mkdir(newAppDirPath, { recursive: true });
-    console.log("\n📁 New /app directory created.");
+    
 
     const indexPath = path.join(newAppDirPath, "index.tsx");
     await fs.promises.writeFile(indexPath, indexContent);
-    console.log("📄 app/index.tsx created.");
-
+    
     const layoutPath = path.join(newAppDirPath, "_layout.tsx");
     await fs.promises.writeFile(layoutPath, layoutContent);
-    console.log("📄 app/_layout.tsx created.");
-
-    console.log("\n✅ Project reset complete. Next steps:");
-    console.log(
-      `1. Run \`npx expo start\` to start a development server.\n2. Edit app/index.tsx to edit the main screen.${
-        userInput === "y"
-          ? `\n3. Delete the /${exampleDir} directory when you're done referencing it.`
-          : ""
-      }`
-    );
+    
   } catch (error) {
     console.error(`❌ Error during script execution: ${error.message}`);
   }
@@ -95,7 +80,6 @@ rl.question(
     if (userInput === "y" || userInput === "n") {
       moveDirectories(userInput).finally(() => rl.close());
     } else {
-      console.log("❌ Invalid input. Please enter 'Y' or 'N'.");
       rl.close();
     }
   }

@@ -46,8 +46,6 @@ const log = (level: LogLevel, tag: string, message: string, meta?: LogMeta) => {
     case 'ERROR':
       console.error(formatted);
       break;
-    default:
-      console.log(formatted);
   }
 };
 

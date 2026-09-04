@@ -348,7 +348,7 @@ export default function OutfitScreen() {
                         ) : (
                             <View style={styles.ropaContainerPlaceholder}>
                                 <MaterialCommunityIcons name="hanger" size={60} color="#ccc" />
-                                <Text style={styles.textoVacio}>Pulsa "Generar con IA" para crear un conjunto basado en tu armario y el clima actual.</Text>
+                                <Text style={styles.textoVacio}>Pulsa "Generar Outfit" para crear un conjunto basado en tu armario y el clima actual.</Text>
                             </View>
                         )}
                     </View>
@@ -356,7 +356,7 @@ export default function OutfitScreen() {
                     <View style={styles.accionesContainer}>
                         <TouchableOpacity style={styles.botonPrimario} onPress={handleGenerar} disabled={loading}>
                             <MaterialCommunityIcons name="magic-staff" size={24} color="#fff" style={styles.iconoBoton} />
-                            <Text style={styles.textoBotonPrimario}>Generar con IA</Text>
+                            <Text style={styles.textoBotonPrimario}>Generar Outfit</Text>
                         </TouchableOpacity>
 
                         {outfitGenerado && (
